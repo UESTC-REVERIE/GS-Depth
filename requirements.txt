@@ -6,6 +6,9 @@ scikit-image
 opencv-python==4.6.0.66
 wheel
 pytorch_lightning
+thop
+ptflops
+numpy<2
 black
 ruff
 hydra-core
@@ -17,7 +20,7 @@ colorama
 colorspacious
 moviepy
 imageio
-git+https://github.com/dcharatan/diff-gaussian-rasterization-modified
+# git+https://github.com/dcharatan/diff-gaussian-rasterization-modified
 timm
 dacite
 lpips
