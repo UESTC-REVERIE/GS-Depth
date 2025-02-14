@@ -58,11 +58,12 @@ class Trainer:
 
         if self.opt.use_stereo:
             self.opt.frame_ids.append("s")
-
+        #encoder 
         self.models["encoder"] = networks.hrnet18(self.opt.weights_init == "pretrained")
         self.models["encoder"].to(self.device)
         self.parameters_to_train += list(self.models["encoder"].parameters())
-
+        
+        #generator+rasterizer+decoder
         self.models["depth"] = networks.DepthDecoder_MSF_GS_FiTAlter_DST(
             self.models["encoder"].num_ch_enc, 
             self.opt.scales,
