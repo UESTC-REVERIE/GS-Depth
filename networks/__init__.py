@@ -3,6 +3,7 @@ from .pose_decoder import PoseDecoder
 from .pose_cnn import PoseCNN
 from .hrnet_encoder import hrnet18
 from .hrnet_encoder import hrnet32
+from .hrnet_encoder import hrnet64
 from .depth_decoder_msf_gs_FiT3D import DepthDecoder_MSF_GS_FiT
 from .depth_decoder_msf_gs_FiT3D_featbeforetrans import DepthDecoder_MSF_GS_FiT_TBT
 from .depth_decoder_msf_gs_FiT3D_featurebehindtrans import DepthDecoder_MSF_GS_FiT_FBT

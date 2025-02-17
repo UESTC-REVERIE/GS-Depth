@@ -55,7 +55,14 @@ def resnet_multiimage_input(num_layers, pretrained=False, num_input_images=1):
     #若设置预训练，则通过model_zoo.py中的load_url函数根据model_urls字典下载或导入相应的预训练模型；
     #最后通过调用model的load_state_dict方法用预训练的模型参数来初始化你构建的网络结构
     if pretrained:
-        loaded = model_zoo.load_url(models.resnet.model_urls['resnet{}'.format(num_layers)])
+        # loaded = model_zoo.load_url(models.resnet.model_urls['resnet{}'.format(num_layers)])
+        # 获取预训练模型models.resnetx
+        resnet_model = getattr(models, f'resnet{num_layers}')(
+            weights=models.ResNet18_Weights.DEFAULT  # 可以替换为其他权重类型如 IMAGENET1K_V1
+        )
+        
+        # 加载模型权重
+        loaded = resnet_model.state_dict()
         loaded['conv1.weight'] = torch.cat(
             [loaded['conv1.weight']] * num_input_images, 1) / num_input_images
         model.load_state_dict(loaded)

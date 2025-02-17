@@ -14,7 +14,7 @@ import torch.nn as nn
 import numpy as np
 import re
 import collections
-from torch._six import string_classes
+# from torch._six import string_classes
 import torch.distributed as dist
 import math
 from torch.utils.data import Sampler
@@ -158,7 +158,7 @@ def default_collate(batch):
         return torch.tensor(batch, dtype=torch.float64)
     elif isinstance(elem, int):
         return torch.tensor(batch)
-    elif isinstance(elem, string_classes):
+    elif isinstance(elem, str):
         return batch
     elif isinstance(elem, collections.abc.Mapping):
         return {key: default_collate([d[key] for d in batch]) for key in elem}

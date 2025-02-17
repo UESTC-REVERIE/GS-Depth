@@ -530,7 +530,7 @@ def _hrnet(arch, pretrained, progress, **kwargs):
 
             # pth_path = "/test/monodepth2-master/models/hrnet_imagenet/hrnetv2_w18_imagenet_pretrained.pth"
             # loaded_state_dict = torch.load(pth_path)
-            pth_path = "/data0/wuhaifeng/checkpoints/HRNet_W18_C_cosinelr_cutmix_300epoch.pth.tar"
+            pth_path = "/data/penghaoming/checkpoints/HRNet_W18_C_cosinelr_cutmix_300epoch.pth.tar"
             loaded_state_dict = torch.load(pth_path, map_location='cpu')
         #if k == 'conv1.weight':
         #    loaded_state_dict[k] = torch.cat([v] * 2, 1) / 2

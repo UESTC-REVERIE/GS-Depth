@@ -165,7 +165,7 @@ class MonodepthOptions:
                                  choices=["pairs", "all"])
         self.parser.add_argument("--pose_model_type",
                                  type=str,
-                                 help="normal or shared",
+                                 help="whether or not using shared encoder for both depth and pose",
                                  default="separate_resnet",
                                  choices=["posecnn", "separate_resnet", "shared"])
         self.parser.add_argument("--use_interframe_normal_loss",

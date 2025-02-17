@@ -9,6 +9,7 @@ pytorch_lightning
 thop
 ptflops
 numpy<2
+yacs
 black
 ruff
 hydra-core
