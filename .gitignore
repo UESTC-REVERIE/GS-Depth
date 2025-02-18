@@ -3,3 +3,4 @@ models/
 
 .idea/
 .vscode/
+slurm.out/
