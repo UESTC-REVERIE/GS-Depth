@@ -124,8 +124,8 @@
 
 CUDA_VISIBLE_DEVICES=5 \
 python train.py \
-    --data_path /data/penghaoming/dataset/KITTI_dataset/raw_data \
-    --log_dir /data/penghaoming/code/GS-Depth/models \
+    --data_path ~/dataset/KITTI_dataset/raw_data \
+    --log_dir ~/code/GS-Depth/models \
     --model_name GS-Depth_baseline_scale0_initdepth0.25_v2 \
     --split eigen_zhou \
     --dataset kitti \
