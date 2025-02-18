@@ -2,6 +2,26 @@
 
 # ps -ef |grep GS-Depth_scale0_initdepthpeloss0.5 |awk '{print $2}'|xargs kill -9
 
+CUDA_VISIBLE_DEVICES=0 \
+python train.py \
+    --data_path /data/penghaoming/dataset/KITTI_dataset/raw_data \
+    --log_dir /data/penghaoming/code/GS-Depth/models \
+    --model_name GS-Depth_baseline_scale0_initdepth0.25_v2 \
+    --split eigen_zhou \
+    --dataset kitti \
+    --num_epochs 20 \
+    --scheduler_step_size 15 \
+    --learning_rate 1e-4 \
+    --num_workers 12 \
+    --batch_size 12 \
+    --scales 0 \
+    --height 192 \
+    --width 640 \
+    --eval_frequency_best 500 \
+    --use_gs \
+    --gs_scale 0 \
+    --loss_gs_weight 0.25 \
+    --png
 
 # ---------------------------------------------------- baseline+gs start ----------------------------------------------------
 
@@ -117,32 +137,6 @@
 #     --gs_scale 2 \
 #     --loss_gs_weight 0.25 \
 #     --png
-
-
-
-
-
-CUDA_VISIBLE_DEVICES=5 \
-python train.py \
-    --data_path ~/dataset/KITTI_dataset/raw_data \
-    --log_dir ~/code/GS-Depth/models \
-    --model_name GS-Depth_baseline_scale0_initdepth0.25_v2 \
-    --split eigen_zhou \
-    --dataset kitti \
-    --num_epochs 20 \
-    --scheduler_step_size 15 \
-    --learning_rate 1e-4 \
-    --num_workers 12 \
-    --batch_size 12 \
-    --scales 0 \
-    --height 192 \
-    --width 640 \
-    --eval_frequency_best 500 \
-    --use_gs \
-    --gs_scale 0 \
-    --loss_gs_weight 0.25 \
-    --png
-
 
 
 # ---------------------------------------------------- baseline+gs end ----------------------------------------------------
