@@ -42,6 +42,7 @@ class MonoDataset(data.Dataset):
         num_scales
         is_train
         img_ext
+        gs_scale
     """
     def __init__(self,
                  data_path,
@@ -49,7 +50,7 @@ class MonoDataset(data.Dataset):
                  height,
                  width,
                  frame_idxs,
-                 num_scales,
+                 num_scales, #default = 1
                  is_train=False,
                  is_val=False,
                  is_test=False,
