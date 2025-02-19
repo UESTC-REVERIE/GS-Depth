@@ -46,7 +46,7 @@ class Trainer:
         self.models = {}
         self.parameters_to_train = []
 
-        self.device = torch.device("cpu" if self.opt.no_cuda else "cuda")
+        self.device = torch.device("cuda" if torch.cuda.is_available() and not self.opt.no_cuda else "cpu")
 
         self.num_scales = len(self.opt.scales)
         self.num_input_frames = len(self.opt.frame_ids)
@@ -114,7 +114,7 @@ class Trainer:
                 num_output_channels=(len(self.opt.frame_ids) - 1))
             self.models["predictive_mask"].to(self.device)
             self.parameters_to_train += list(self.models["predictive_mask"].parameters())
-
+        #创建优化器
         self.model_optimizer = optim.Adam(self.parameters_to_train, self.opt.learning_rate)
         # self.model_lr_scheduler = optim.lr_scheduler.StepLR(
         #     self.model_optimizer, self.opt.scheduler_step_size, 0.1)
@@ -249,11 +249,13 @@ class Trainer:
         for batch_idx, inputs in enumerate(self.train_loader):
 
             before_op_time = time.time()
-
+            #前向传播
             outputs, losses = self.process_batch('train', inputs)
-
+            #清零梯度
             self.model_optimizer.zero_grad()
+            #反向传播
             losses["total_loss"].backward()
+            #更新参数
             self.model_optimizer.step()
 
             duration = time.time() - before_op_time
@@ -852,7 +854,7 @@ class Trainer:
 
     
     def compute_depth_losses(self, inputs, outputs):
-        eval_measures = torch.zeros(8).cuda(device=self.device)
+        eval_measures = torch.zeros(8).to(self.device)
         if self.opt.dataset == "nyu":
             MIN_DEPTH = 0.01
             MAX_DEPTH = 10
