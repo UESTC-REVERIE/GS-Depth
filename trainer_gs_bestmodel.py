@@ -54,6 +54,7 @@ class Trainer:
 
         assert self.opt.frame_ids[0] == 0, "frame_ids must start with 0"
 
+        # 存在frame_ids不为[0]的情况或非stereo(monocular)的情况，需要使用pose_net，default: True
         self.use_pose_net = not (self.opt.use_stereo and self.opt.frame_ids == [0])
 
         if self.opt.use_stereo:
@@ -78,7 +79,7 @@ class Trainer:
         
 
         if self.use_pose_net:
-            if self.opt.pose_model_type == "separate_resnet":
+            if self.opt.pose_model_type == "separate_resnet": # default
                 self.models["pose_encoder"] = networks.ResnetEncoder(
                     self.opt.num_layers,
                     self.opt.weights_init == "pretrained",
@@ -131,6 +132,7 @@ class Trainer:
             self.model_optimizer.param_groups[0]['lr'] = self.opt.learning_rate
             self.model_optimizer.param_groups[0]['initial_lr'] = self.opt.learning_rate
 
+        # default scheduler_step_size=15, scheduler_weight=0.1, 每scheduler_step_size个epoch，学习率乘以scheduler_weight
         self.model_lr_scheduler = optim.lr_scheduler.StepLR(
             self.model_optimizer, self.opt.scheduler_step_size, self.opt.scheduler_weight)        
 
@@ -143,7 +145,7 @@ class Trainer:
                          "kitti_odom": datasets.KITTIOdomDataset,
                          "nyu": datasets.NYURAWDataset}
         self.dataset = datasets_dict[self.opt.dataset]
-
+        # default self.opt.split : eigen_zhou
         fpath = os.path.join(os.path.dirname(__file__), "splits", self.opt.split, "{}_files.txt")
 
         train_filenames = readlines(fpath.format("train"))
@@ -177,8 +179,8 @@ class Trainer:
 
         self.backproject_depth = {}
         self.project_3d = {}
-        self.project_depth = {}
-        self.detail_guide = {}
+        # self.project_depth = {}
+        # self.detail_guide = {}
         for scale in self.opt.scales:
             h = self.opt.height // (2 ** scale)
             w = self.opt.width // (2 ** scale)
@@ -189,8 +191,8 @@ class Trainer:
             self.project_3d[scale] = Project3D_removedxy(self.opt.batch_size, h, w)
             self.project_3d[scale].to(self.device)
 
-            self.project_depth[scale] = Project_depth(self.opt.batch_size, h, w)
-            self.project_depth[scale].to(self.device)
+            # self.project_depth[scale] = Project_depth(self.opt.batch_size, h, w)
+            # self.project_depth[scale].to(self.device)
 
             # self.detail_guide[scale] = DetailGuide(self.opt.batch_size, h, w)
             # self.detail_guide[scale].to(self.device)
@@ -231,10 +233,6 @@ class Trainer:
         self.start_time = time.time()
         for self.epoch in range(self.opt.start_epoch, self.opt.num_epochs):
             self.run_epoch()
-            # if (self.epoch + 1) % self.opt.save_frequency == 0:
-            #     self.save_model()
-            # if self.step % 100 == 0:
-            #     self.save_model()
             if (self.epoch + 1) % self.opt.save_frequency == 0 and self.epoch >= 15:
                 self.save_model()
 
@@ -636,7 +634,7 @@ class Trainer:
             else:
                 source_scale = 0
 
-            disp = outputs["output", 0][("disp", scale)]
+            disp = outputs["output", 0][("disp", scale)] # 高斯特征预测的视差图
             color = inputs[("color", 0, scale)]
             target = inputs[("color", 0, source_scale)]
             if self.opt.use_gs and self.opt.gs_scale != 0:
@@ -797,6 +795,7 @@ class Trainer:
 
                 loss_gs += to_optimise_gs.mean()
                 if self.opt.use_init_smoothLoss:
+                    print("use init smooth loss")
                     mean_disp_gs = disp_gs.mean(2, True).mean(3, True)
                     norm_disp_gs = disp_gs / (mean_disp_gs + 1e-7)
                     smooth_loss_gs = get_smooth_loss(norm_disp_gs, color)
