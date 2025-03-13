@@ -437,7 +437,7 @@ class HighResolutionNet(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        outputs.append(x)
+        outputs.append(x) # outputs[0]
         x = self.conv2(x)
         x = self.bn2(x)
         x = self.relu(x)
@@ -543,6 +543,7 @@ def hrnet18(pretrained=True, progress=True, **kwargs):
     r"""HRNet-18 model
     """
     model = _hrnet('hrnet18', pretrained, progress, **kwargs)
+    # 不同阶段的编码器通道数
     model.num_ch_enc = [ 64, 18, 36, 72, 144 ]
     return model
 

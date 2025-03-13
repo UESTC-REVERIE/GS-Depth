@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torchvision.models as models
-import torch.utils.model_zoo as model_zoo
+# import torch.utils.model_zoo as model_zoo
 
 
 class ResNetMultiImageInput(models.ResNet):
