@@ -1,3 +1,10 @@
+CUDA_VISIBLE_DEVICES=5 \
+python evaluate_depth_gs_bestmodel.py \
+    --data_path ~/dataset/KITTI_dataset/raw_data \
+    --load_weights_folder /data/penghaoming/code/GS-Depth/models/baseline/monodepth2.pth \
+    --eval_split eigen \
+    --eval_mono \
+    # --use_gs \
 
 
 

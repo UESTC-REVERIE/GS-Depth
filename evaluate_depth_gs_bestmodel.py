@@ -101,13 +101,13 @@ def evaluate(opt):
         else:
             dataset = datasets.KITTIRAWDataset(opt.data_path, filenames,
                                             opt.height, opt.width,
-                                            [0], 4, is_train=False, img_ext='.png', gs_scale=opt.gs_scale)
+                                            [0], 4, is_train=False, img_ext='.png')
 
         dataloader = DataLoader(dataset, 16, shuffle=False, num_workers=opt.num_workers,
                                 pin_memory=True, drop_last=False)
 
-        # encoder = networks.ResnetEncoder(opt.num_layers, False)
-        encoder = networks.hrnet18(False)
+        encoder = networks.ResnetEncoder(opt.num_layers, False)
+        # encoder = networks.hrnet18(False)
 
         # encoder = networks.ResnetEncoder(opt.num_layers, False)
         # depth_decoder = networks.DepthDecoder(encoder.num_ch_enc, opt.scales)
@@ -124,15 +124,31 @@ def evaluate(opt):
         #                                                 max_depth=opt.max_depth,
         #                                                 height=opt.height,
         #                                                 width=opt.width)
-        depth_decoder = networks.DepthDecoder_MSF_GS_FiTAlter_DST(encoder.num_ch_enc, 
-                                                    [0], 
-                                                    num_output_channels=1,
-                                                    use_gs=opt.use_gs, 
-                                                    gs_scale=opt.gs_scale, 
-                                                    min_depth=opt.min_depth, 
-                                                    max_depth=opt.max_depth, 
-                                                    height=opt.height, 
-                                                    width=opt.width)
+        init_decoder = networks.InitDepthDecoder(
+            num_ch_enc=encoder.num_ch_enc,
+            scales=opt.scales
+        )
+        if opt.use_gs:
+            gs_leverage = networks.GaussianFeatureLeverage(
+                num_ch_in=init_decoder.num_ch_dec, 
+                scales=opt.scales,
+                height=opt.height, width=opt.width,
+                leveraged_feat_ch=64, 
+                min_depth=opt.min_depth, max_depth=opt.max_depth
+            )
+            gs_decoder = networks.GSDepthDecoder(
+                num_ch_enc=gs_leverage.num_ch_out,
+                scales=opt.scales
+            )
+        # depth_decoder = networks.DepthDecoder_MSF_GS_FiTAlter(encoder.num_ch_enc, 
+        #                                             opt.scales,
+        #                                             num_output_channels=1,
+        #                                             use_gs=opt.use_gs, 
+        #                                             gs_scale=opt.gs_scale, 
+        #                                             min_depth=opt.min_depth, 
+        #                                             max_depth=opt.max_depth, 
+        #                                             height=opt.height, 
+        #                                             width=opt.width)
         # depth_decoder = networks.DepthDecoder_MSF(encoder.num_ch_enc, 
         #                                                     [0], 
         #                                                     num_output_channels=1, 
@@ -151,27 +167,59 @@ def evaluate(opt):
         encoder_dict = checkpoint["encoder"]
         model_dict = encoder.state_dict()
         encoder.load_state_dict({k: v for k, v in encoder_dict.items() if k in model_dict})
-        depth_dcit = checkpoint["depth"]
-        depth_decoder.load_state_dict(depth_dcit)
+        
+        init_decoder_dict = checkpoint["init_decoder"]
+        model_dict = init_decoder.state_dict()
+        init_decoder.load_state_dict({k: v for k, v in init_decoder_dict.items() if k in model_dict})
+        
+        if opt.use_gs:
+            gs_leverage_dict = checkpoint["gs_leverage"]
+            model_dict = gs_leverage.state_dict()
+            gs_leverage.load_state_dict({k: v for k, v in gs_leverage_dict.items() if k in model_dict})
+
+            gs_decoder_dict = checkpoint["gs_decoder"]
+            model_dict = gs_decoder.state_dict()
+            gs_decoder.load_state_dict({k: v for k, v in gs_decoder_dict.items() if k in model_dict})
+        # # TODO 修改加载模型时不使用gs时不加载高斯模型
+        # filtered_dict = checkpoint["depth"]
+        # if not opt.use_gs:
+        #     # 定义需要排除的关键字列表
+        #     exclude_keywords = ["rotation", "scale", "opacity", 
+        #                         "feature_leve", "backprojector", 
+        #                         "rasterizer", "feature_resume_conv"]
+        #     current_keys = depth_decoder.state_dict().keys()
+        #     # print("current_keys: ", current_keys)
+
+        #     filtered_dict = {
+        #         k: v for k, v in checkpoint["depth"].items() 
+        #         if not any(keyword in k for keyword in exclude_keywords)
+        #     }
+        # # print("filtered_dict: ", filtered_dict.keys())
+        # depth_decoder.load_state_dict(filtered_dict, strict=False)
 
         encoder.to(device)
         encoder.eval()
-        depth_decoder.to(device)
-        depth_decoder.eval()
+        init_decoder.to(device)
+        init_decoder.eval()
+        if opt.use_gs:
+            gs_leverage.to(device)
+            gs_leverage.eval()
+            gs_decoder.to(device)
+            gs_decoder.eval()
 
         print("data length: ", len(dataset))
 
         encoder_total_params = sum(p.numel() for p in encoder.parameters())
-        print('Total parameters: %.6fM (%d)' % (encoder_total_params / 1e6, encoder_total_params))
+        print('encoder_total_params: %.6fM (%d)' % (encoder_total_params / 1e6, encoder_total_params))
         encoder_total_trainable_params = sum(
             p.numel() for p in encoder.parameters() if p.requires_grad)
-        print('Total_trainable_params: %.6fM (%d)' % (encoder_total_trainable_params / 1e6, encoder_total_trainable_params))
+        print('encoder_total_trainable_params: %.6fM (%d)' % (encoder_total_trainable_params / 1e6, encoder_total_trainable_params))
 
-        decoder_total_params = sum(p.numel() for p in depth_decoder.parameters())
-        print('Total parameters: %.6fM (%d)' % (decoder_total_params / 1e6, decoder_total_params))
+        decoder_total_params = sum(p.numel() for p in init_decoder.parameters())
+        print('init_decoder_total_params: %.6fM (%d)' % (decoder_total_params / 1e6, decoder_total_params))
         decoder_total_trainable_params = sum(
-            p.numel() for p in depth_decoder.parameters() if p.requires_grad)
-        print('Total_trainable_params: %.6fM (%d)' % (decoder_total_trainable_params / 1e6, decoder_total_trainable_params))
+            p.numel() for p in init_decoder.parameters() if p.requires_grad)
+        print('init_decoder_total_trainable_params: %.6fM (%d)' % (decoder_total_trainable_params / 1e6, decoder_total_trainable_params))
 
         network_total_params = encoder_total_params + decoder_total_params
         network_total_trainable_params = encoder_total_trainable_params + decoder_total_trainable_params
@@ -190,29 +238,42 @@ def evaluate(opt):
                 input_color = data[("color", 0, 0)].to(device)
                 inv_K = []
                 K = []
-                if opt.gs_scale != 0:
-                    inv_K.append(data[("inv_K_gs", opt.gs_scale)].to(device))
-                    K.append(data[("K_gs", opt.gs_scale)].to(device))
-                else:
-                    inv_K.append(data[("inv_K_gs", 1)].to(device))
-                    inv_K.append(data[("inv_K_gs", 2)].to(device))
-                    inv_K.append(data[("inv_K_gs", 3)].to(device))
-                    inv_K.append(data[("inv_K_gs", 4)].to(device))
-                    inv_K.append(data[("inv_K_gs", 5)].to(device))
+                for scale in range(4):
+                    inv_K.append(data[("inv_K", scale)].to(device))
+                    K.append(data[("K", scale)].to(device))
+                # if opt.gs_scale != 0:
+                #     inv_K.append(data[("inv_K_gs", opt.gs_scale)].to(device))
+                #     K.append(data[("K_gs", opt.gs_scale)].to(device))
+                # else:
+                #     inv_K.append(data[("inv_K_gs", 1)].to(device))
+                #     inv_K.append(data[("inv_K_gs", 2)].to(device))
+                #     inv_K.append(data[("inv_K_gs", 3)].to(device))
+                #     inv_K.append(data[("inv_K_gs", 4)].to(device))
+                #     inv_K.append(data[("inv_K_gs", 5)].to(device))
 
-                    K.append(data[("K_gs", 1)].to(device))
-                    K.append(data[("K_gs", 2)].to(device))
-                    K.append(data[("K_gs", 3)].to(device))
-                    K.append(data[("K_gs", 4)].to(device))
-                    K.append(data[("K_gs", 5)].to(device))
+                #     K.append(data[("K_gs", 1)].to(device))
+                #     K.append(data[("K_gs", 2)].to(device))
+                #     K.append(data[("K_gs", 3)].to(device))
+                #     K.append(data[("K_gs", 4)].to(device))
+                #     K.append(data[("K_gs", 5)].to(device))
 
                 if opt.post_process:
                     # Post-processed results require each image to have two forward passes
                     input_color = torch.cat((input_color, torch.flip(input_color, [3])), 0)
 
-                output = depth_decoder(encoder(input_color), inv_K, K)
-
-                pred_disp, _ = disp_to_depth(output[("disp", 0)], opt.min_depth, opt.max_depth)
+                outputs , gs_input_features = init_decoder(encoder(input_color))
+                if opt.use_gs:
+                    leveraged_features = gs_leverage(
+                        init_features = gs_input_features,
+                        init_disps = list(outputs["init_disp", i] for i in opt.scales),
+                        inv_K = inv_K, K = K
+                    )
+                    outputs.update(gs_decoder(leveraged_features))
+                else :
+                    for i in opt.scales:
+                        outputs[("disp", i)] = outputs[("init_disp", i)]
+                    
+                pred_disp, _ = disp_to_depth(outputs[("disp", 0)], opt.min_depth, opt.max_depth)
                 pred_disp = pred_disp.cpu().numpy()
 
                 if opt.post_process:
