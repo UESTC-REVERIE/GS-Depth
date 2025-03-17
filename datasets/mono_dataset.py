@@ -50,12 +50,13 @@ class MonoDataset(data.Dataset):
                  height,
                  width,
                  frame_idxs,
-                 num_scales, #default = 1
+                 num_scales,
                  is_train=False,
                  is_val=False,
                  is_test=False,
-                 img_ext='.png', 
-                 gs_scale=0):
+                 img_ext='.png'
+                #  gs_scale=0
+                 ):
         super(MonoDataset, self).__init__()
 
         self.data_path = data_path
@@ -72,7 +73,7 @@ class MonoDataset(data.Dataset):
         self.is_val = is_val
         self.is_test = is_test
         self.img_ext = img_ext
-        self.gs_scale = gs_scale
+        # self.gs_scale = gs_scale
 
         self.loader = pil_loader
         self.to_tensor = transforms.ToTensor()
@@ -95,11 +96,11 @@ class MonoDataset(data.Dataset):
             self.hue = 0.1
 
         self.resize = {}
-        for i in range(self.num_scales):
+        for i in range(6):
             s = 2 ** i
             self.resize[i] = transforms.Resize((self.height // s, self.width // s),
                                                interpolation=self.interp)
-
+        ##print(self.resize) #{0: Resize(size=(192, 640), interpolation=lanczos, max_size=None, antialias=warn)}
         self.load_depth = self.check_depth()
 
     def preprocess(self, inputs, color_aug):
@@ -113,9 +114,9 @@ class MonoDataset(data.Dataset):
             # frame = inputs[k]
             if "color" in k:
                 n, im, i = k
-                for i in range(self.num_scales):
+                for i in range(6):
                     inputs[(n, im, i)] = self.resize[i](inputs[(n, im, i - 1)])
-
+        # print("test2: ", inputs)
         for k in list(inputs):
             f = inputs[k]
             if "color" in k:
@@ -124,7 +125,7 @@ class MonoDataset(data.Dataset):
                     continue
                 inputs[(n, im, i)] = self.to_tensor(f)
                 inputs[(n + "_aug", im, i)] = self.to_tensor(color_aug(f))
-
+        # print("test3: ", inputs)
     def load_intrinsics(self, folder, frame_index):
         return self.K.copy()
     
@@ -165,7 +166,7 @@ class MonoDataset(data.Dataset):
         if type(self).__name__ in ["CityscapesPreprocessedDataset", "CityscapesEvalDataset"]:
             inputs.update(self.get_colors(folder, frame_index, side, do_flip))
         else:
-            for i in self.frame_idxs:
+            for i in self.frame_idxs: # default: [0, -1, 1]
                 if i == "s":
                     other_side = {"r": "l", "l": "r"}[side]
                     inputs[("color", i, -1)] = self.get_color(folder, frame_index, other_side, do_flip)
@@ -189,37 +190,37 @@ class MonoDataset(data.Dataset):
             #     self.brightness, self.contrast, self.saturation, self.hue)
         else:
             color_aug = (lambda x: x)
-
+        # print("test1: ", inputs)
         self.preprocess(inputs, color_aug)
 
         # adjusting intrinsics to match each scale in the pyramid
-        for scale in range(self.num_scales):
+        for scale in range(6):
             K = self.load_intrinsics(folder, frame_index)
-
+            # 根据当前尺度的图像分辨率重新计算实际的焦距和主点坐标。
             K[0, :] *= self.width // (2 ** scale)
             K[1, :] *= self.height // (2 ** scale)
             inv_K = np.linalg.pinv(K)
             inputs[("K", scale)] = torch.from_numpy(K)
             inputs[("inv_K", scale)] = torch.from_numpy(inv_K)
 
-        if self.gs_scale == 0:
-            for scale in range(1, 6):
-                # K = self.K.copy()
-                K = self.load_intrinsics(folder, frame_index)
-                K[0, :] *= self.width // (2 ** scale)
-                K[1, :] *= self.height // (2 ** scale)
-                inv_K = np.linalg.pinv(K)
-                inputs[("K_gs", scale)] = torch.from_numpy(K)
-                inputs[("inv_K_gs", scale)] = torch.from_numpy(inv_K)
-        else:
-            scale = self.gs_scale
-            # K = self.K.copy()
-            K = self.load_intrinsics(folder, frame_index)
-            K[0, :] *= self.width // scale
-            K[1, :] *= self.height // scale
-            inv_K = np.linalg.pinv(K)
-            inputs[("K_gs", scale)] = torch.from_numpy(K)
-            inputs[("inv_K_gs", scale)] = torch.from_numpy(inv_K)
+        # if self.gs_scale == 0:
+        #     for scale in range(0, 6):
+        #         # K = self.K.copy()
+        #         K = self.load_intrinsics(folder, frame_index)
+        #         K[0, :] *= self.width // (2 ** scale)
+        #         K[1, :] *= self.height // (2 ** scale)
+        #         inv_K = np.linalg.pinv(K)
+        #         inputs[("K_gs", scale)] = torch.from_numpy(K)
+        #         inputs[("inv_K_gs", scale)] = torch.from_numpy(inv_K)
+        # else:
+        #     scale = self.gs_scale
+        #     # K = self.K.copy()
+        #     K = self.load_intrinsics(folder, frame_index)
+        #     K[0, :] *= self.width // scale
+        #     K[1, :] *= self.height // scale
+        #     inv_K = np.linalg.pinv(K)
+        #     inputs[("K_gs", scale)] = torch.from_numpy(K)
+        #     inputs[("inv_K_gs", scale)] = torch.from_numpy(inv_K)
 
         #删除原尺寸图像，-1表示原始图像(1242, 375)
         for i in self.frame_idxs:

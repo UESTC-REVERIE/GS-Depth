@@ -102,6 +102,10 @@ class MonodepthOptions:
                                    type=float,
                                    help="weight of dx depth",
                                    default=0)
+          self.parser.add_argument("--loss_init_weight",
+                                   type=float,
+                                   help="weight of dx depth",
+                                   default=0)
           self.parser.add_argument("--use_interframe_consistency",
                                    help="if set, uses 3d gs",
                                    action="store_true")

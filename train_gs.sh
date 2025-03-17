@@ -2,11 +2,11 @@
 
 # ps -ef |grep GS-Depth_scale0_initdepthpeloss0.5 |awk '{print $2}'|xargs kill -9
 
-CUDA_VISIBLE_DEVICES=1 \
+CUDA_VISIBLE_DEVICES=3 \
 python train_gs.py \
     --data_path /data/penghaoming/dataset/KITTI_dataset/raw_data \
     --log_dir /data/penghaoming/code/GS-Depth/models \
-    --model_name resnet_encoder_gs_pretrained_frozen_nosmooth \
+    --model_name resnet_encoder_gs_pretrained_combined_loss_unfrozen \
     --split eigen_zhou \
     --dataset kitti \
     --num_epochs 20 \
@@ -18,12 +18,13 @@ python train_gs.py \
     --width 640 \
     --eval_frequency_best 500 \
     --loss_gs_weight 0.25 \
+    --loss_init_weight 1 \
     --png \
     --use_gs \
     --pretrained_model_path /data/penghaoming/code/GS-Depth/models/baseline/monodepth2.pth \
     --pretrained_models_to_load encoder init_decoder pose_encoder pose \
-    --pretrained_frozen \
-    # --use_init_smoothLoss \
+    --use_init_smoothLoss \
+    # --pretrained_frozen \
     
  
 

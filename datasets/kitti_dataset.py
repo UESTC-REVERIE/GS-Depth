@@ -20,12 +20,18 @@ class KITTIDataset(MonoDataset):
     """
     def __init__(self, *args, **kwargs):
         super(KITTIDataset, self).__init__(*args, **kwargs)
-
+        
+        # NOTE: Make sure your intrinsics matrix is *normalized* by the original image size.
+        # To normalize you need to scale the first row by 1 / image_width and the second row
+        # by 1 / image_height. Monodepth2 assumes a principal point to be exactly centered.
+        # If your principal point is far from the center you might need to disable the horizontal
+        # flip augmentation.
+        # 721/1242=0.58, 721/375=1.92
         self.K = np.array([[0.58, 0, 0.5, 0],
                            [0, 1.92, 0.5, 0],
                            [0, 0, 1, 0],
                            [0, 0, 0, 1]], dtype=np.float32)
-        
+        # P_rect(Projection Matrix after Rectification)
         # self.cam_k = {
         #     '2011_09_26' : np.array([[7.215377e+02, 0.000000e+00, 6.095593e+02, 4.485728e+01], 
         #                              [0.000000e+00, 7.215377e+02, 1.728540e+02, 2.163791e-01],
@@ -49,12 +55,32 @@ class KITTIDataset(MonoDataset):
         #                     [0.000000e+00, 0.000000e+00, 1.000000e+00, 3.779761e-03],
         #                              [0.000000e+00, 0.000000e+00, 0.000000e+00, 1.000000e+00]]),
         # }
-
+        
+        # S_rect(Rectified Size)
         self.full_res_shape = (1242, 375)
+        # image_00是左侧灰度，image_01右侧灰度，image_02左侧彩色，image_03右侧彩色
         self.side_map = {"2": 2, "3": 3, "l": 2, "r": 3}
     
     def index_to_folder_and_frame_idx(self, index):
-        """Convert index in the dataset to a folder name, frame_idx and any other bits
+        """
+        Convert dataset index to folder name, frame index, and metadata
+            
+        Parses the string format of `self.filenames[index]` to extract:
+        - Folder path (e.g., "2011_09_26/2011_09_26_drive_0022_sync")
+        - Frame index (e.g., 473)
+        - indicate direction (e.g., "r" or "l")
+        
+        Example input format:
+        "2011_09_26/2011_09_26_drive_0022_sync 473 r"
+        
+        Args:
+            index (int): Dataset sample index
+        
+        Returns:
+            tuple: A tuple containing:
+                - folder_name (str): Path to data folder
+                - frame_idx (int): Frame sequence number
+                - metadata (str): Additional metadata (e.g., direction flag)
         """
         line = self.filenames[index].split()
         folder = line[0]

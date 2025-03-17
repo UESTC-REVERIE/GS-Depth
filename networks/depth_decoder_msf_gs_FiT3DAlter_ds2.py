@@ -16,7 +16,7 @@ from collections import OrderedDict
 from layers import *
 import torch.nn.functional as F
 
-
+# DST 删除scale2的版本
 class DepthDecoder_MSF_GS_FiTAlter_DST(nn.Module):
     def __init__(self, num_ch_enc, scales=range(4), num_output_channels=1, use_skips=True, 
                  use_gs=False, gs_scale=0, min_depth=0.1, max_depth=100.0, height=192, width=640):
@@ -58,6 +58,7 @@ class DepthDecoder_MSF_GS_FiTAlter_DST(nn.Module):
                             self.convs[("dispconv_init", self.gs_scale)] = Conv3x3(self.num_ch_dec[self.min_level], self.num_output_channels)
                     
             else:
+                #decoder
                 for i in range(4, 1, -1):
                     # upconv_0
                     num_ch_in = self.num_ch_enc[-1] if i == 4 else self.num_ch_dec[i + 1]
@@ -72,8 +73,10 @@ class DepthDecoder_MSF_GS_FiTAlter_DST(nn.Module):
                     self.convs[("upconv", i, 1)] = ConvBlock(num_ch_in, num_ch_out)
                 for s in range(2, 5):
                     self.convs[("dispconv_init", 2**s)] = Conv3x3(self.num_ch_dec[s], self.num_output_channels)
-                self.convs[("dispconv_init", 32)] = Conv3x3(self.num_ch_dec[4], self.num_output_channels)
+                self.convs[("dispconv_init", 32)] = Conv3x3(self.num_ch_dec[4], self.num_output_channels) # (2,)4,8,16,32
+                
             # 3D Gaussian generator
+            # TODO 改为2D U-Net
             if self.gs_scale == 0:
                 # 1. position head
                 # self.convs[("gs_position_conv"), 0, 32] = ConvBlock(self.num_ch_enc[4], self.num_ch_enc[4])
@@ -257,7 +260,6 @@ class DepthDecoder_MSF_GS_FiTAlter_DST(nn.Module):
             #     self.feature_rasterizer_2 = Rasterize_Gaussian_Feature_FiT3D_v1(image_height=self.height//self.gs_scale, 
             #                                                         image_width=self.width//self.gs_scale)
             
-        # decoder
         # self.convs[("parallel_conv"), 0, 0] = ConvBlock(self.num_ch_enc[0], self.num_ch_enc[0])
         # self.convs[("parallel_conv"), 0, 1] = ConvBlock(self.num_ch_enc[1], self.num_ch_enc[1])
         # self.convs[("parallel_conv"), 0, 2] = ConvBlock(self.num_ch_enc[2], self.num_ch_enc[2])
@@ -736,5 +738,6 @@ class DepthDecoder_MSF_GS_FiTAlter_DST(nn.Module):
         d5 = self.convs[("parallel_conv"), 5, 0](d4_0)
         self.outputs[("disp", 0)] = self.sigmoid(self.convs[("dispconv", 0)](d5))
 
+        # TODO 修改为MonoDepth2对应的full-res multi-scale
         return self.outputs     #single-scale depth
     

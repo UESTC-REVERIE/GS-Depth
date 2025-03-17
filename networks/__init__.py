@@ -13,8 +13,8 @@ from .hrnet_encoder import hrnet64
 # from .depth_decoder_msf_gs_FiT3D_add import DepthDecoder_MSF_GS_FiT_Add
 # from .depth_decoder_msf_gs_FiT3DAlter import DepthDecoder_MSF_GS_FiTAlter
 # from .depth_decoder_msf_gs_FiT3DAlter_ds2 import DepthDecoder_MSF_GS_FiTAlter_DST
-from .gs_feature_leverage import GaussianFeatureLeverage
-from .depth_decoder_1 import DepthDecoder_MSF_GS_FiTAlter_DST
+from .depth_decoder_hrnet import DepthDecoder_MSF_GS_FiTAlter_DST
 from .depth_decoder_resnet import DepthDecoder_MSF_GS_FiTAlter
-from .init_depth_decoder import InitDepthDecoder
-from .gs_depth_decoder import GSDepthDecoder
+from .gs_feature_leverage_hrnet import GaussianFeatureLeverage
+from .init_depth_decode_hrnet import InitDepthDecoder
+from .gs_depth_decoder_hrnet import GSDepthDecoder

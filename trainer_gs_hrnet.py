@@ -6,6 +6,7 @@
 
 from __future__ import absolute_import, division, print_function
 
+import cv2
 import numpy as np
 import time
 
@@ -32,7 +33,17 @@ from IPython import embed
 
 from tqdm import tqdm
 
+# 改动中代码：
+# 编码器：[ResNet18, HRNet18]，
+# 使用init_decoder的输出[独立，通过光栅化同一高斯表达]预测多尺度高斯，
+# 由高斯光栅化的特征使用[HRNet18p特征融合解码器输出最终尺度深度图，Monodepth2的Decoder输出多尺度深度图]，
+# init depth[参与，未参与]loss计算
 
+# gs_baseline代码：
+# 使用HRNet18作为编码器，
+# 使用编码器输出独立预测多尺度高斯，
+# 由高斯光栅化的特征使用HRNet18p特征融合解码器输出最终尺度深度图，
+# init depth参与loss计算
 class Trainer:
     def __init__(self, options):
         # torch.autograd.set_detect_anomaly(True)
@@ -48,7 +59,8 @@ class Trainer:
 
         self.device = torch.device("cuda" if torch.cuda.is_available() and not self.opt.no_cuda else "cpu")
 
-        self.num_scales = len(self.opt.scales)
+        # self.num_scales = len(self.opt.scales)
+        self.num_scales = 4
         self.num_input_frames = len(self.opt.frame_ids)
         self.num_pose_frames = 2 if self.opt.pose_model_input == "pairs" else self.num_input_frames
 
@@ -59,27 +71,46 @@ class Trainer:
 
         if self.opt.use_stereo:
             self.opt.frame_ids.append("s")
-        #encoder 
-        # self.models["encoder"] = networks.hrnet18(self.opt.weights_init == "pretrained")
-        self.models["encoder"] = networks.ResnetEncoder(
-            self.opt.num_layers, self.opt.weights_init == "pretrained")
+        # region Depth模型初始化
+        # encoder 
+        self.models["encoder"] = networks.hrnet18(self.opt.weights_init == "pretrained")
+        # self.models["encoder"] = networks.ResnetEncoder(
+        #     self.opt.num_layers, self.opt.weights_init == "pretrained")
         self.models["encoder"].to(self.device)
         self.parameters_to_train += list(self.models["encoder"].parameters())
-        
-        #generator+rasterizer+decoder
-        self.models["depth"] = networks.DepthDecoder_MSF_GS_FiTAlter_DST(
-            self.models["encoder"].num_ch_enc, 
-            self.opt.scales,
-            use_gs=self.opt.use_gs, 
-            gs_scale=self.opt.gs_scale, 
-            min_depth=self.opt.min_depth, 
-            max_depth=self.opt.max_depth, 
-            height=self.opt.height, 
-            width=self.opt.width)
-        self.models["depth"].to(self.device)
-        self.parameters_to_train += list(self.models["depth"].parameters())
-        
+        # init decoder(monodepth2) 初始解码器，特征融合并解码得到初始深度图
+        self.models["init_decoder"] = networks.InitDepthDecoder(
+            num_ch_enc=self.models["encoder"].num_ch_enc,
+            scales=self.opt.scales
+        )
+        self.models["init_decoder"].to(self.device)
+        self.parameters_to_train += list(self.models["init_decoder"].parameters())
 
+        if self.opt.use_gs:
+            # gs feature leverage
+            self.models["gs_leverage"] = networks.GaussianFeatureLeverage(
+                # TODO concat初始的深度图提供结构信息
+                num_ch_in=self.models["init_decoder"].num_ch_dec, 
+                scales=self.opt.scales,
+                height=self.opt.height, width=self.opt.width,
+                # TODO 修改光栅器默认输出维度不为64
+                leveraged_feat_ch=64, 
+                min_depth=self.opt.min_depth, max_depth=self.opt.max_depth
+            )
+            self.models["gs_leverage"].to(self.device)
+            self.parameters_to_train += list(self.models["gs_leverage"].parameters())
+            
+            # gs feature decoder
+            self.models["gs_decoder"] = networks.GSDepthDecoder(
+                num_ch_enc=self.models["gs_leverage"].num_ch_out,
+                scales=self.opt.scales
+            )
+            self.models["gs_decoder"].to(self.device)
+            self.parameters_to_train += list(self.models["gs_decoder"].parameters())
+
+        # endregion
+        
+        # region Pose模型初始化
         if self.use_pose_net:
             if self.opt.pose_model_type == "separate_resnet": # default
                 self.models["pose_encoder"] = networks.ResnetEncoder(
@@ -105,7 +136,8 @@ class Trainer:
 
             self.models["pose"].to(self.device)
             self.parameters_to_train += list(self.models["pose"].parameters())
-
+        # endregion
+        
         if self.opt.predictive_mask:
             assert self.opt.disable_automasking, \
                 "When using predictive_mask, please disable automasking with --disable_automasking"
@@ -119,20 +151,19 @@ class Trainer:
             self.parameters_to_train += list(self.models["predictive_mask"].parameters())
         #创建优化器
         self.model_optimizer = optim.Adam(self.parameters_to_train, self.opt.learning_rate)
-        # self.model_lr_scheduler = optim.lr_scheduler.StepLR(
-        #     self.model_optimizer, self.opt.scheduler_step_size, 0.1)
+
+        # region 加载预训练模型
+        if self.opt.pretrained_model_path is not None:
+            self.load_pretrained_model(self.opt.pretrained_model_path, self.opt.pretrained_models_to_load, self.opt.pretrained_frozen)
+        # endregion
         
-        # self.model_lr_scheduler = optim.lr_scheduler.MultiStepLR(
-        #     self.model_optimizer, [15,20], 0.3)
-
-        # if self.opt.load_weights_folder is not None:
-        #     self.load_model()
-
+        # region retrain
         if self.opt.load_weights_folder is not None:
             # self.load_model()
             self.load_model_checkpoints()
             self.model_optimizer.param_groups[0]['lr'] = self.opt.learning_rate
             self.model_optimizer.param_groups[0]['initial_lr'] = self.opt.learning_rate
+        # endregion
 
         # default scheduler_step_size=15, scheduler_weight=0.1, 每scheduler_step_size个epoch，学习率乘以scheduler_weight
         self.model_lr_scheduler = optim.lr_scheduler.StepLR(
@@ -142,7 +173,7 @@ class Trainer:
         print("Models and tensorboard events files are saved to:\n  ", self.opt.log_dir)
         print("Training is using:\n  ", self.device)
 
-        # data
+        # region 数据处理
         datasets_dict = {"kitti": datasets.KITTIRAWDataset,
                          "kitti_odom": datasets.KITTIOdomDataset,
                          "nyu": datasets.NYURAWDataset}
@@ -159,18 +190,19 @@ class Trainer:
 
         train_dataset = self.dataset(
             self.opt.data_path, train_filenames, self.opt.height, self.opt.width,
-            self.opt.frame_ids, 1, is_train=True, img_ext=img_ext, gs_scale=self.opt.gs_scale)
+            self.opt.frame_ids, self.num_scales, is_train=True, img_ext=img_ext)
         self.train_loader = DataLoader(
             train_dataset, self.opt.batch_size, True,
             num_workers=self.opt.num_workers, pin_memory=True, drop_last=True)
         val_dataset = self.dataset(
             self.opt.data_path, val_filenames, self.opt.height, self.opt.width,
-            self.opt.frame_ids, 1, is_val=True, img_ext=img_ext, gs_scale=self.opt.gs_scale)
+            self.opt.frame_ids, self.num_scales, is_val=True, img_ext=img_ext)
         self.val_loader = DataLoader(
             val_dataset, self.opt.batch_size, True,
             num_workers=self.opt.num_workers, pin_memory=True, drop_last=True)
         self.val_iter = iter(self.val_loader)
-
+        # endregion
+        
         self.writers = {}
         for mode in ["train", "val"]:
             self.writers[mode] = SummaryWriter(os.path.join(self.log_path, mode))
@@ -192,12 +224,6 @@ class Trainer:
 
             self.project_3d[scale] = Project3D_removedxy(self.opt.batch_size, h, w)
             self.project_3d[scale].to(self.device)
-
-            # self.project_depth[scale] = Project_depth(self.opt.batch_size, h, w)
-            # self.project_depth[scale].to(self.device)
-
-            # self.detail_guide[scale] = DetailGuide(self.opt.batch_size, h, w)
-            # self.detail_guide[scale].to(self.device)
 
 
         self.depth_metric_names = [
@@ -254,10 +280,11 @@ class Trainer:
             #清零梯度
             self.model_optimizer.zero_grad()
             #反向传播
-            losses["total_loss"].backward()
+            losses["loss"].backward()
+
             #更新参数
             self.model_optimizer.step()
-
+ 
             duration = time.time() - before_op_time
 
             # log less frequently after the first 2000 steps to save time & disk space
@@ -314,43 +341,49 @@ class Trainer:
             # Otherwise, we only feed the image with frame_id 0 through the depth encoder
             inv_K = []
             K = []
+            if self.opt.use_gs: # 得到inv_k,k列表用于高斯
+                for scale in range(6):
+                    inv_K.append(inputs[("inv_K", scale)].to(self.device))
+                    K.append(inputs[("K", scale)].to(self.device))
+
+            features = self.models["encoder"](inputs["color", 0, 0]) if mode == 'val' else self.models["encoder"](inputs["color_aug", 0, 0])
+
+            outputs, gs_input_features = self.models["init_decoder"](features)
             if self.opt.use_gs:
-                if self.opt.gs_scale != 0:
-                    inv_K.append(inputs[("inv_K_gs", self.opt.gs_scale)].to(self.device))
-                    K.append(inputs[("K_gs", self.opt.gs_scale)].to(self.device))
-                elif self.opt.gs_scale == 0:
-                    inv_K.append(inputs[("inv_K_gs", 1)].to(self.device))
-                    inv_K.append(inputs[("inv_K_gs", 2)].to(self.device))
-                    inv_K.append(inputs[("inv_K_gs", 3)].to(self.device))
-                    inv_K.append(inputs[("inv_K_gs", 4)].to(self.device))
-                    inv_K.append(inputs[("inv_K_gs", 5)].to(self.device))
-
-                    K.append(inputs[("K_gs", 1)].to(self.device))
-                    K.append(inputs[("K_gs", 2)].to(self.device))
-                    K.append(inputs[("K_gs", 3)].to(self.device))
-                    K.append(inputs[("K_gs", 4)].to(self.device))
-                    K.append(inputs[("K_gs", 5)].to(self.device))
-
-            if mode == 'val':
-                features = self.models["encoder"](inputs["color", 0, 0])
-                outputs["output", 0] = self.models["depth"](features, inv_K, K)
-            else:
-                features = self.models["encoder"](inputs["color_aug", 0, 0])
-                outputs["output", 0] = self.models["depth"](features, inv_K, K)
-            # Otherwise, we only feed the image with frame_id 0 through the depth encoder
-            # features_LoS = self.models["encoder"](inputs["color_LoS", 0, 0])
-            # outputs["out_LoS"] = self.models["depth"](features_LoS)
+                leveraged_features = self.models["gs_leverage"](
+                    init_features = gs_input_features,
+                    init_disps = list(outputs["init_disp", i] for i in self.opt.scales),
+                    inv_K = inv_K, K = K
+                )
+                
+                outputs.update(self.models["gs_decoder"](leveraged_features))
+            else :
+                for i in self.opt.scales:
+                    outputs[("disp", i)] = outputs[("init_disp", i)]
 
         if mode == 'train':
+            losses={}
             if self.opt.predictive_mask:
                 outputs["predictive_mask"] = self.models["predictive_mask"](features)
 
             if self.use_pose_net:
                 outputs.update(self.predict_poses(inputs, features))
+            if self.opt.use_gs:
+                init_disp_list = list(outputs[("init_disp", i)] for i in range(4))
+                self.generate_images_pred(inputs, outputs, init_disp_list, 4, "init_")
+                losses["init_loss"] = self.compute_losses(inputs, outputs, init_disp_list, 4, True, "init_") * self.opt.loss_init_weight
+                
+                disp_list = list(outputs[("disp", i)] for i in range(1))
+                self.generate_images_pred(inputs, outputs, disp_list, 1)
+                losses["gs_loss"] = self.compute_losses(inputs, outputs, disp_list, 1, self.opt.use_init_smoothLoss) * self.opt.loss_gs_weight
+                
+                losses["loss"] = losses["init_loss"] + losses["gs_loss"]
+            else:
+                disp_list = list(outputs[("disp", i)] for i in range(4))
+                self.generate_images_pred(inputs, outputs, disp_list, 4)
+                losses["loss"] = self.compute_losses(inputs, outputs, disp_list, 4, True)
 
-            self.generate_images_pred(inputs, outputs)
-
-            losses = self.compute_losses(inputs, outputs)
+            
 
             return outputs, losses
         else:
@@ -467,7 +500,9 @@ class Trainer:
                 checkpoint = {'best_epoch': self.epoch,
                             'best_batch': batch_idx,
                                 'encoder': self.models["encoder"].state_dict(),
-                                'depth': self.models["depth"].state_dict(),
+                                'init_decoder': self.models["init_decoder"].state_dict(),
+                                'gs_leverage': self.models["gs_leverage"].state_dict() if self.opt.use_gs else None,
+                                'gs_decoder': self.models["gs_decoder"].state_dict() if self.opt.use_gs else None,
                                 'pose_encoder': self.models["pose_encoder"].state_dict(),
                                 'pose': self.models["pose"].state_dict(),
                                 'optimizer': self.model_optimizer.state_dict(),
@@ -481,25 +516,24 @@ class Trainer:
 
         self.set_train()
 
-    def generate_images_pred(self, inputs, outputs):
+    def generate_images_pred(self, inputs, outputs, disps, num_scales, tag=""):
         """Generate the warped (reprojected) color images for a minibatch.
         Generated images are saved into the `outputs` dictionary.
         """
-        for scale in self.opt.scales: # default is [0], 原代码只输出高斯特征预测的一个
+        for scale in range(num_scales):
             # disp_HiS = outputs["out_HiS"][("disp", scale)]
-            disp = outputs["output", 0][("disp", scale)]
-            # _, depth_ = disp_to_depth(disp, self.opt.min_depth, self.opt.max_depth)
+            disp = disps[scale]
             if self.opt.v1_multiscale:
                 source_scale = scale
             else:
-                # disp = F.interpolate(
-                #     disp, [self.opt.height, self.opt.width], mode="bilinear", align_corners=False)
+                disp = F.interpolate(
+                    disp, [self.opt.height, self.opt.width], mode="bilinear", align_corners=False)
                 source_scale = 0
 
-
+            # outputs[("disp", scale)] = disp
             _, depth = disp_to_depth(disp, self.opt.min_depth, self.opt.max_depth)
-            outputs[("depth", 0, scale)] = depth
-
+            outputs[(f"{tag}depth", 0, scale)] = depth
+            outputs[(f"{tag}disp_full_res", scale)] = disp
             for i, frame_id in enumerate(self.opt.frame_ids[1:]):
 
                 if frame_id == "s":
@@ -523,63 +557,11 @@ class Trainer:
                     depth, inputs[("inv_K", source_scale)])
                 pix_coords = self.project_3d[source_scale](
                     cam_points, inputs[("K", source_scale)], T)
-                outputs[("sample", frame_id, scale)] = pix_coords
-                outputs[("color", frame_id, scale)] = F.grid_sample(
+                outputs[(f"{tag}color", frame_id, scale)] = F.grid_sample(
                     inputs[("color", frame_id, source_scale)],
-                    outputs[("sample", frame_id, scale)],
+                    pix_coords,
                     padding_mode="border",
                     align_corners = True)
-                
-    
-        if self.opt.use_gs and self.opt.gs_scale == 0:
-            for scale in range(2, 6):
-                # TODO 用disp_init来计算损失不合理，为什么不用multi-scale rendered gs?
-                disp_gs = outputs["output", 0][("disp_init", 2**scale)]
-                if self.opt.v1_multiscale:
-                    source_scale = scale
-                else:
-                    source_scale = 0
-
-                disp_gs = F.interpolate(
-                        disp_gs, [self.opt.height, self.opt.width], mode="bilinear", align_corners=False)
-                outputs[("disp_gs", 0, scale)] = disp_gs
-                _, depth_gs = disp_to_depth(disp_gs, self.opt.min_depth, self.opt.max_depth)
-                outputs[("depth_gs", 0, scale)] = depth_gs
-
-                # disp_LoS = outputs["out_LoS"][("disp", scale)]
-                # _, depth_LoS = disp_to_depth(disp_LoS, self.opt.min_depth, self.opt.max_depth)
-                # outputs[("depth_LoS", 0, scale)] = depth_LoS
-
-                for i, frame_id in enumerate(self.opt.frame_ids[1:]):
-
-                    if frame_id == "s":
-                        T = inputs["stereo_T"]
-                    else:
-                        T = outputs[("cam_T_cam", 0, frame_id)]
-
-                    # from the authors of https://arxiv.org/abs/1712.00175
-                    if self.opt.pose_model_type == "posecnn":
-
-                        axisangle = outputs[("axisangle", 0, frame_id)]
-                        translation = outputs[("translation", 0, frame_id)]
-
-                        inv_depth = 1 / depth_gs
-                        mean_inv_depth = inv_depth.mean(3, True).mean(2, True)
-
-                        T = transformation_from_parameters(
-                            axisangle[:, 0], translation[:, 0] * mean_inv_depth[:, 0], frame_id < 0)
-                    
-                    cam_points_gs = self.backproject_depth[source_scale](
-                        depth_gs, inputs[("inv_K", source_scale)])
-                    pix_coords_gs = self.project_3d[source_scale](
-                        cam_points_gs, inputs[("K", source_scale)], T)
-                    outputs[("sample_gs", frame_id, scale)] = pix_coords_gs
-                    outputs[("color_gs", frame_id, scale)] = F.grid_sample(
-                        inputs[("color", frame_id, source_scale)],
-                        outputs[("sample_gs", frame_id, scale)],
-                        padding_mode="border",
-                        align_corners = True)
-    
     def compute_reprojection_loss(self, pred, target):
         """Computes reprojection loss between a batch of predicted and target images
         """
@@ -594,47 +576,37 @@ class Trainer:
 
         return reprojection_loss
 
-    def compute_losses(self, inputs, outputs):
+    def compute_losses(self, inputs, outputs, disps, num_scales, use_smooth_loss, tag=""):
         """Compute the reprojection and smoothness losses for a minibatch
         """
-        losses = {}
         total_loss = 0
-        loss = 0
-        loss_gs = 0
 
         train_save_path = os.path.join(os.path.dirname(__file__), "models/{}/results/".format(self.opt.model_name))
         if not os.path.exists(train_save_path):
             os.makedirs(train_save_path)
 
-        for scale in self.opt.scales: # default is [0], 这个循环原代码只计算高斯特征预测的loss
+        for scale in range(num_scales):
+            loss = 0
             reprojection_losses = []
-            reprojection_losses_gs = []
 
             if self.opt.v1_multiscale:
                 source_scale = scale
             else:
                 source_scale = 0
 
-            disp = outputs["output", 0][("disp", scale)] # 高斯特征预测的视差图
-            color = inputs[("color", 0, scale)]
+            disp = disps[scale]
+            color = inputs[("color", 0, scale+2)]
             target = inputs[("color", 0, source_scale)]
-     
             if self.step % 500 == 0:
-                dn_to_disp_resized_np = disp[0].squeeze().cpu().detach().numpy()
-                vmax = np.percentile(dn_to_disp_resized_np, 95)
-                normalizer = mpl.colors.Normalize(vmin=dn_to_disp_resized_np.min(), vmax=vmax)
-                mapper = cm.ScalarMappable(norm=normalizer, cmap='plasma') #magma
-                colormapped_im = (mapper.to_rgba(dn_to_disp_resized_np)[:, :, :3] * 255).astype(np.uint8)
-                im = pil.fromarray(colormapped_im)
-                im.save(os.path.join(train_save_path, "{}_disp.png".format(self.opt.model_name)))
-                
-                target_ = target[0].cpu().detach().numpy() * 255
-                target_ = np.transpose(target_, (1, 2, 0)).astype(np.uint8)
-                target_ = Image.fromarray(target_)
-                target_.save(os.path.join(train_save_path, "{}_image.png".format(self.opt.model_name)))
+                # TODO 保存变化尺度后的depthmap
+                _disps = {}
+                _disps[f"{tag}disp"] = outputs[(f"{tag}disp_full_res", scale)]
+                # disps["init_disp"] = outputs[("init_disp", scale)]
+                _depth = outputs[(f"{tag}depth", 0, scale)]
+                self.save_img(_depth,_disps,target,scale,train_save_path)
 
             for frame_id in self.opt.frame_ids[1:]:
-                pred = outputs[("color", frame_id, scale)]
+                pred = outputs[(f"{tag}color", frame_id, scale)]
                 reprojection_losses.append(self.compute_reprojection_loss(pred, target))
 
             reprojection_losses = torch.cat(reprojection_losses, 1)
@@ -670,18 +642,14 @@ class Trainer:
 
             if self.opt.avg_reprojection:
                 reprojection_loss = reprojection_losses.mean(1, keepdim=True)
-                if self.opt.use_gs and self.opt.gs_scale != 0:
-                    reprojection_loss_gs = reprojection_losses_gs.mean(1, keepdim=True)
             else:
                 reprojection_loss = reprojection_losses
-                if self.opt.use_gs and self.opt.gs_scale != 0:
-                    reprojection_loss_gs = reprojection_losses_gs
 
             if not self.opt.disable_automasking:
+                # identity_reprojection_loss += torch.randn(
+                #     identity_reprojection_loss.shape).cuda() * 0.00001
                 identity_reprojection_loss += torch.randn(
-                    identity_reprojection_loss.shape).cuda() * 0.00001
-                if self.opt.use_gs and self.opt.gs_scale != 0:
-                    combined_gs = torch.cat((identity_reprojection_loss, reprojection_loss_gs), dim=1)
+                    identity_reprojection_loss.shape, device=self.device) * 0.00001
 
                 combined = torch.cat((identity_reprojection_loss, reprojection_loss), dim=1)
             
@@ -691,127 +659,26 @@ class Trainer:
 
             if combined.shape[1] == 1:
                 to_optimise = combined
-                if self.opt.use_gs and self.opt.gs_scale != 0:
-                    to_optimise_gs = combined_gs
-    
             else:
                 to_optimise, idxs = torch.min(combined, dim=1)
-                if self.opt.use_gs and self.opt.gs_scale != 0:
-                    to_optimise_gs, _ = torch.min(combined_gs, dim=1)
-
-            if not self.opt.disable_automasking:
-                outputs["identity_selection/{}".format(scale)] = (
-                    idxs > identity_reprojection_loss.shape[1] - 1).float()
 
             loss += to_optimise.mean()
-            mean_disp = disp.mean(2, True).mean(3, True)
-            norm_disp = disp / (mean_disp + 1e-7)
-            smooth_loss = get_smooth_loss(norm_disp, color)
-            # loss += self.opt.disparity_smoothness * smooth_loss / (2 ** scale)
-            loss += self.opt.disparity_smoothness * smooth_loss
+            
+            if use_smooth_loss:
+                # print("Using init smooth loss")
+                mean_disp = disp.mean(2, True).mean(3, True)
+                norm_disp = disp / (mean_disp + 1e-7)
+                smooth_loss = get_smooth_loss(norm_disp, color)
+                loss += self.opt.disparity_smoothness * smooth_loss / (2 ** (scale + 2))
+                
+            total_loss += loss
+            # losses[f"{tag}loss/{scale}"] = loss
 
-            losses["loss/{}".format(scale)] = loss
-
-        if self.opt.use_gs and self.opt.gs_scale == 0:
-            for scale in range(2, 6):
-                reprojection_losses_gs = []
-
-                if self.opt.v1_multiscale:
-                    source_scale = scale
-                else:
-                    source_scale = 0
-                disp_gs = outputs[("disp_gs", 0, scale)]
-                color = inputs[("color", 0, source_scale)]
-                target = inputs[("color", 0, source_scale)]
-
-                if self.step % 500 == 0:
-                    dn_to_disp_resized_np = disp_gs[0].squeeze().cpu().detach().numpy()
-                    vmax = np.percentile(dn_to_disp_resized_np, 95)
-                    normalizer = mpl.colors.Normalize(vmin=dn_to_disp_resized_np.min(), vmax=vmax)
-                    mapper = cm.ScalarMappable(norm=normalizer, cmap='plasma') #magma
-                    colormapped_im = (mapper.to_rgba(dn_to_disp_resized_np)[:, :, :3] * 255).astype(np.uint8)
-                    im = pil.fromarray(colormapped_im)
-                    im.save(os.path.join(train_save_path, "{}_{}_init_disp.png".format(self.opt.model_name, scale)))
-
-                for frame_id in self.opt.frame_ids[1:]:
-                    pred_gs = outputs[("color_gs", frame_id, scale)]
-                    reprojection_losses_gs.append(self.compute_reprojection_loss(pred_gs, target))
-
-                reprojection_losses_gs = torch.cat(reprojection_losses_gs, 1)
-
-                if self.opt.avg_reprojection:
-                    reprojection_loss_gs = reprojection_losses_gs.mean(1, keepdim=True)
-                else:
-                    reprojection_loss_gs = reprojection_losses_gs
-
-                if not self.opt.disable_automasking:
-                    combined_gs = torch.cat((identity_reprojection_loss, reprojection_loss_gs), dim=1)
-                else:
-                    combined_gs = reprojection_loss_gs
-                    
-
-                if combined.shape[1] == 1:
-                    to_optimise_gs = combined_gs
-                else:
-                    to_optimise_gs, _ = torch.min(combined_gs, dim=1)
-
-                loss_gs += to_optimise_gs.mean()
-                if self.opt.use_init_smoothLoss:
-                    mean_disp_gs = disp_gs.mean(2, True).mean(3, True)
-                    norm_disp_gs = disp_gs / (mean_disp_gs + 1e-7)
-                    smooth_loss_gs = get_smooth_loss(norm_disp_gs, color)
-                    loss_gs += self.opt.disparity_smoothness * smooth_loss_gs
-
-        # loss_HiS /= self.num_scales
-        loss /= self.num_scales
+        total_loss /= num_scales
+        # losses["loss"] = total_loss
         
-
-        if self.opt.use_gs and self.opt.gs_scale == 0:
-            loss_gs /= 4
-            loss_gs = self.opt.loss_gs_weight * loss_gs
-            total_loss += loss_gs
-            losses["loss_gs"] = loss_gs
-        elif self.opt.use_gs:
-            loss_gs = self.opt.loss_gs_weight * loss_gs
-            total_loss += loss_gs
-            losses["loss_gs"] = loss_gs
-
-        total_loss += loss
-        losses["total_loss"] = total_loss
-        losses["loss"] = loss
-        
-        return losses
+        return total_loss
     
-    # def compute_depth_losses(self, inputs, outputs, losses):
-    #     """Compute depth metrics, to allow monitoring during training
-
-    #     This isn't particularly accurate as it averages over the entire batch,
-    #     so is only used to give an indication of validation performance
-    #     """
-    #     depth_pred = outputs[("depth", 0, 0)]
-    #     depth_pred = torch.clamp(F.interpolate(
-    #         depth_pred, [375, 1242], mode="bilinear", align_corners=False), 1e-3, 80)
-    #     depth_pred = depth_pred.detach()
-
-    #     depth_gt = inputs["depth_gt"]
-    #     mask = depth_gt > 0
-
-    #     # garg/eigen crop
-    #     crop_mask = torch.zeros_like(mask)
-    #     crop_mask[:, :, 153:371, 44:1197] = 1
-    #     mask = mask * crop_mask
-
-    #     depth_gt = depth_gt[mask]
-    #     depth_pred = depth_pred[mask]
-    #     depth_pred *= torch.median(depth_gt) / torch.median(depth_pred)
-
-    #     depth_pred = torch.clamp(depth_pred, min=1e-3, max=80)
-
-    #     depth_errors = compute_depth_errors(depth_gt, depth_pred)
-
-    #     for i, metric in enumerate(self.depth_metric_names):
-    #         losses[metric] = np.array(depth_errors[i].cpu())
-
     
     def compute_depth_losses(self, inputs, outputs):
         eval_measures = torch.zeros(8).to(self.device)
@@ -829,7 +696,7 @@ class Trainer:
         # depth_pred = outputs[("depth", 0, 0)]
         depth_gt = inputs["depth_gt"].to(self.device)
         gt_height, gt_width = depth_gt.shape[2:]
-        disp = outputs["output", 0][("disp", 0)]
+        disp = outputs[("disp", 0)]
         disp_pred, _ = disp_to_depth(disp, self.opt.min_depth, self.opt.max_depth)
         # disp_pred = torch.clamp(F.interpolate(
         #     disp_pred, [gt_height, gt_width], mode="bilinear", align_corners=False), 1e-3, 80)
@@ -840,17 +707,6 @@ class Trainer:
         for i in range(depth_pred.shape[0]):
             depth_gt_each = depth_gt[i].squeeze()
             depth_pred_each = depth_pred[i].squeeze()
-            # print("111: ", depth_gt_each.min(), depth_gt_each.max(), depth_pred_each.min(), depth_pred_each.max())
-            # print("***: ", depth_gt_each.shape, depth_pred_each.shape)
-
-            # mask = depth_gt_each > 0
-            # mask = torch.logical_and(depth_gt_each > MIN_DEPTH, depth_gt_each < MAX_DEPTH)
-
-            # # garg/eigen crop
-            # crop_mask = torch.zeros_like(mask)
-            # crop_mask[:, 153:371, 44:1197] = 1
-            # # mask = mask * crop_mask
-            # mask = torch.logical_and(mask, crop_mask)
 
             if self.opt.dataset == "eigen":
                 mask = torch.logical_and(depth_gt_each > MIN_DEPTH, depth_gt_each < MAX_DEPTH)
@@ -884,12 +740,6 @@ class Trainer:
             # depth_pred_each = torch.clamp(depth_pred_each, min=1e-3, max=80)
             depth_pred_each[depth_pred_each < MIN_DEPTH] = MIN_DEPTH
             depth_pred_each[depth_pred_each > MAX_DEPTH] = MAX_DEPTH
-
-            # for i in range(depth_pred.shape[0]):
-            #     depth_pred_each = depth_pred[i]
-            #     depth_gt_each = depth_gt[i]
-            #     depth_pred_each *= torch.median(depth_gt_each) / torch.median(depth_pred_each)
-            #     depth_pred_each = torch.clamp(depth_pred_each, min=1e-3, max=80)
             
             measures = compute_depth_errors(depth_gt_each, depth_pred_each)
             eval_measures[:7] += torch.tensor(measures).cuda(device=self.device)
@@ -898,8 +748,6 @@ class Trainer:
 
         return eval_measures
 
-        # for i, metric in enumerate(self.depth_metric_names):
-        #     losses[metric] = np.array(depth_errors[i].cpu())
 
 
 
@@ -910,53 +758,37 @@ class Trainer:
         time_sofar = time.time() - self.start_time
         training_time_left = (
             self.num_total_steps / self.step - 1.0) * time_sofar if self.step > 0 else 0
-        
-        if self.opt.use_gs:
-            print_string = "epo {:>3} | bat {:>6} | ex/s: {:5.1f}" + \
-                " | lM: {:.4f} | lM_gs: {:.4f} | loss: {:.5f} | te: {} | tl: {} | lr: {}"
-            print(print_string.format(self.epoch, batch_idx, samples_per_sec, losses["loss"].cpu().data, losses["loss_gs"].cpu().data, losses["total_loss"].cpu().data,
-                                    sec_to_hm_str(time_sofar), sec_to_hm_str(training_time_left), self.model_optimizer.state_dict()['param_groups'][0]['lr']))
-        else:
-            print_string = "epo {:>3} | bat {:>6} | ex/s: {:5.1f}" + \
-                " | lM: {:.4f} | loss: {:.5f} | te: {} | tl: {} | lr: {}"
-            print(print_string.format(self.epoch, batch_idx, samples_per_sec, losses["loss"].cpu().data, losses["total_loss"].cpu().data,
-                                    sec_to_hm_str(time_sofar), sec_to_hm_str(training_time_left), self.model_optimizer.state_dict()['param_groups'][0]['lr']))
+    
+        print_string = "epo {:>3} | bat {:>6} | ex/s: {:5.1f}" + \
+            " | loss: {:.5f} | te: {} | tl: {} | lr: {}"
+        print(print_string.format(self.epoch, batch_idx, samples_per_sec, losses["loss"].cpu().data,
+            sec_to_hm_str(time_sofar), sec_to_hm_str(training_time_left), self.model_optimizer.state_dict()['param_groups'][0]['lr']))
 
+    def save_img(self, depth, disps, target, scale, train_save_path):
+        model_name = self.opt.model_name
+        for disp_type, disp in disps.items():
+            # 保存视差图（伪彩色图，原逻辑）
+            disp_np = disp[0].squeeze().cpu().detach().numpy()
+            vmax = np.percentile(disp_np, 95)
+            # 打印数据统计信息（调试用）
+            print(f"{disp_type}: Scale {scale}: min={disp_np.min()}, max={disp_np.max()}, mean={disp_np.mean()}")
+            
+            normalizer = mpl.colors.Normalize(vmin=disp_np.min(), vmax=vmax)
+            mapper = cm.ScalarMappable(norm=normalizer, cmap='plasma')
+            colormapped_im = (mapper.to_rgba(disp_np)[:, :, :3] * 255).astype(np.uint8)
+            im = Image.fromarray(colormapped_im)
+            im.save(os.path.join(train_save_path, f"{model_name}_{disp_type}_scale{scale}.png"))
 
-    def log(self, mode, inputs, outputs, losses):
-        """Write an event to the tensorboard events file
-        """
-        writer = self.writers[mode]
-        for l, v in losses.items():
-            writer.add_scalar("{}".format(l), v, self.step)
+        # 保存深度图（16位灰度图）
+        depth_np = depth[0].squeeze().cpu().detach().numpy()
+        depth_normalized = cv2.normalize(depth_np, None, 0, 65535, cv2.NORM_MINMAX)
+        depth_16u = depth_normalized.astype(np.uint16)
+        cv2.imwrite(os.path.join(train_save_path, f"{model_name}_depth_scale{scale}.png"), depth_16u)
 
-        for j in range(min(4, self.opt.batch_size)):  # write a maxmimum of four images
-            for s in self.opt.scales:
-                for frame_id in self.opt.frame_ids:
-                    writer.add_image(
-                        "color_{}_{}/{}".format(frame_id, s, j),
-                        inputs[("color", frame_id, s)][j].data, self.step)
-                    if s == 0 and frame_id != 0:
-                        writer.add_image(
-                            "color_pred_{}_{}/{}".format(frame_id, s, j),
-                            outputs[("color", frame_id, s)][j].data, self.step)
-
-                writer.add_image(
-                    "disp_{}/{}".format(s, j),
-                    normalize_image(outputs[("disp", s)][j]), self.step)
-
-                if self.opt.predictive_mask:
-                    for f_idx, frame_id in enumerate(self.opt.frame_ids[1:]):
-                        writer.add_image(
-                            "predictive_mask_{}_{}/{}".format(frame_id, s, j),
-                            outputs["predictive_mask"][("disp", s)][j, f_idx][None, ...],
-                            self.step)
-
-                elif not self.opt.disable_automasking:
-                    writer.add_image(
-                        "automask_{}/{}".format(s, j),
-                        outputs["identity_selection/{}".format(s)][j][None, ...], self.step)
-
+        # 保存原图
+        target_ = target[0].cpu().detach().numpy() * 255
+        target_ = np.transpose(target_, (1, 2, 0)).astype(np.uint8)
+        Image.fromarray(target_).save(os.path.join(train_save_path, f"{model_name}_image.png"))
     def save_opts(self):
         """Save options to disk so we know what we ran this experiment with
         """
@@ -988,33 +820,6 @@ class Trainer:
 
         save_path = os.path.join(save_folder, "{}.pth".format("adam"))
         torch.save(self.model_optimizer.state_dict(), save_path)
-
-    def load_model(self):
-        """Load model(s) from disk
-        """
-        self.opt.load_weights_folder = os.path.expanduser(self.opt.load_weights_folder)
-
-        assert os.path.isdir(self.opt.load_weights_folder), \
-            "Cannot find folder {}".format(self.opt.load_weights_folder)
-        print("loading model from folder {}".format(self.opt.load_weights_folder))
-
-        for n in self.opt.models_to_load:
-            print("Loading {} weights...".format(n))
-            path = os.path.join(self.opt.load_weights_folder, "{}.pth".format(n))
-            model_dict = self.models[n].state_dict()
-            pretrained_dict = torch.load(path)
-            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-            model_dict.update(pretrained_dict)
-            self.models[n].load_state_dict(model_dict)
-
-        # loading adam state
-        optimizer_load_path = os.path.join(self.opt.load_weights_folder, "adam.pth")
-        if os.path.isfile(optimizer_load_path):
-            print("Loading Adam weights")
-            optimizer_dict = torch.load(optimizer_load_path)
-            self.model_optimizer.load_state_dict(optimizer_dict)
-        else:
-            print("Cannot find Adam weights so Adam is randomly initialized")
 
     def load_model_checkpoints(self):
         """Load model(s) from disk
@@ -1049,4 +854,39 @@ class Trainer:
         else:
             print("== No checkpoint found at '{}'".format(self.opt.load_weights_folder))
         del checkpoint
+        
+    def load_pretrained_model(self, path, models_to_load, frozen):
+        """Load model(s) from disk
+        """
+        path = os.path.expanduser(path)
+
+        # false时断言触发
+        assert not os.path.isdir(path), \
+            "--pretrained_model_path should be a model file, but {} is a directory".format(path)
+
+        if os.path.isfile(path):
+            print("loading model from {}".format(path))
+            checkpoint = torch.load(path)
+
+            for n in models_to_load:
+                print("Loading {} weights...".format(n))
+                model_dict = self.models[n].state_dict()
+                pretrained_dict = checkpoint["{}".format(n)]
+                pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+                model_dict.update(pretrained_dict)
+                self.models[n].load_state_dict(model_dict)
+                
+                if frozen:
+                    # 冻结模型参数（不参与梯度更新）
+                    for param in self.models[n].parameters():
+                        param.requires_grad = False
+                    # 从优化器参数列表中移除冻结参数
+                    self.parameters_to_train = [
+                        p for p in self.parameters_to_train 
+                        if p not in set(self.models[n].parameters())
+                    ]  # 确保优化器不更新冻结层
+                    print(f"Frozen the pretrained model: {n}")
+            del checkpoint  
+        else:
+            print("== No checkpoint found at '{}'".format(self.opt.load_weights_folder))
 

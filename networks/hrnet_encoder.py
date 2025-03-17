@@ -476,7 +476,9 @@ class HighResolutionNet(nn.Module):
                 x_list.append(y_list[i])
         y_list = self.stage4(x_list)
 
-        outputs = outputs + y_list #0:[12,64,96,320]; 1:[12,18,48,160]; 2:[12,36,24,80]; 3:[12,72,12,40]; 4:[12,144,6,20]
+        outputs = outputs + y_list 
+        #0:[12,64,96,320]; 1:[12,18,48,160]; 2:[12,36,24,80]; 3:[12,72,12,40]; 4:[12,144,6,20]
+        #resulution: 1/2,1/4,1/8,1/16,1/32
         return outputs
     
     def weight_parameters(self):

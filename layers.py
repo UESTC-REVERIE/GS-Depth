@@ -104,6 +104,7 @@ class Rasterize_Gaussian_Feature_FiT3D(nn.Module):
     def __init__(self, image_height, image_width, scaling_modifier=1.0):
         super(Rasterize_Gaussian_Feature_FiT3D, self).__init__()
         # Set up rasterization configuration
+        # 定义光栅化后生成的2D特征图的高度和宽度
         self.image_height = image_height
         self.image_width = image_width
         self.scaling_modifier = scaling_modifier
@@ -221,6 +222,7 @@ class Rasterize_Gaussian_Feature_FiT3D_v1(nn.Module):
             tanfovx = math.tan(FoVx* 0.5)
             tanfovy = math.tan(FoVy * 0.5)
 
+            # 单位矩阵，相机坐标系和世界坐标系的变换矩阵，数据集中以camera_0为基准，故默认无变化
             world_view_transform = torch.zeros(4, 4).to(device=feature.device)
             world_view_transform[0, 0] = 1
             world_view_transform[1, 1] = 1
@@ -258,15 +260,15 @@ class Rasterize_Gaussian_Feature_FiT3D_v1(nn.Module):
             scale_per = scale[index]
             rotation_per = rotation[index]
             rendered_image, rendered_featmap, radii = rasterizer(
-            means3D = position_per,
-            means2D = means2D_per,
-            shs = None,
-            colors_precomp = color_per,
-            opacities = opacity_per,
-            scales = scale_per,
-            rotations = rotation_per,
-            sem = semantic_feature_per,
-            cov3D_precomp = None)
+                means3D = position_per,
+                means2D = means2D_per,
+                shs = None,
+                colors_precomp = color_per,
+                opacities = opacity_per,
+                scales = scale_per,
+                rotations = rotation_per,
+                sem = semantic_feature_per,
+                cov3D_precomp = None)
             # print(out_all_map.shape)
             gs_features[index:index+1] = rendered_featmap.unsqueeze(0)    
             
@@ -1553,8 +1555,8 @@ def get_smooth_loss(disp, img):
     grad_img_x = torch.mean(torch.abs(img[:, :, :, :-1] - img[:, :, :, 1:]), 1, keepdim=True)
     grad_img_y = torch.mean(torch.abs(img[:, :, :-1, :] - img[:, :, 1:, :]), 1, keepdim=True)
 
-    grad_disp_x = grad_disp_x * torch.exp(-grad_img_x)
-    grad_disp_y = grad_disp_y * torch.exp(-grad_img_y)
+    grad_disp_x *= torch.exp(-grad_img_x)
+    grad_disp_y *= torch.exp(-grad_img_y)
 
     return grad_disp_x.mean() + grad_disp_y.mean()
 
