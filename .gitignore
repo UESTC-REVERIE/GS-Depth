@@ -1,6 +1,7 @@
 models/
 **/__pycache__
-
+**/*.npz
+**/*.npy
 .idea/
 .vscode/
 slurm.out/

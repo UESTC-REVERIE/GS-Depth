@@ -279,7 +279,6 @@ def evaluate(opt):
                 if opt.post_process:
                     N = pred_disp.shape[0] // 2
                     pred_disp = batch_post_process_disparity(pred_disp[:N], pred_disp[N:, :, ::-1])
-
                 pred_disps.append(pred_disp)
 
         pred_disps = np.concatenate(pred_disps)
@@ -297,7 +296,14 @@ def evaluate(opt):
 
     if opt.save_pred_disps:
         output_path = os.path.join(
-            opt.load_weights_folder, "disps_{}_split.npy".format(opt.eval_split))
+            opt.eval_output_dir, "disps_{}_split.npy".format(opt.eval_split))
+         # 检查目录是否存在
+        output_dir = os.path.dirname(output_path)
+        if not os.path.exists(output_dir):
+            # 用户确认环节
+            user_input = input(f"目录 '{output_dir}' 不存在，按回车自动创建（或 Ctrl+C 取消）")
+            os.makedirs(output_dir, exist_ok=True) 
+            print(f"-> 已创建目录 {output_dir}")
         print("-> Saving predicted disparities to ", output_path)
         np.save(output_path, pred_disps)
 
