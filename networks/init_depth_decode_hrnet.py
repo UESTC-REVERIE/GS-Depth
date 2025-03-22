@@ -62,7 +62,7 @@ class InitDepthDecoder(nn.Module):
         # decoder
         x = input_features[-1]
         # 预测高斯参数的特征输入
-        decoder_features = {}
+        decoder_features = []
         # 预测初始深度图
         for i in range(3, -1, -1): # up-conv 每个尺度上都进行两次卷积，并上采样
             x = self.convs[("upconv", i, 0)](x)
@@ -72,7 +72,7 @@ class InitDepthDecoder(nn.Module):
             x = torch.cat(x, 1)
             x = self.convs[("upconv", i, 1)](x)
             if i in self.scales: # 在{0，1，2，3}尺度上都进行一次卷积生成视差图来计算loss
-                decoder_features[i] = x
+                decoder_features.insert(0,x)
                 self.outputs[("init_disp", i)] = self.sigmoid(self.convs[("dispconv", i)](x))
-
-        return self.outputs, decoder_features
+        disp_list = list(self.outputs[("init_disp", i)] for i in self.scales)
+        return self.outputs, decoder_features, disp_list
