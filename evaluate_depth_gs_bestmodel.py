@@ -123,7 +123,7 @@ def evaluate(opt):
                 num_ch_concat = 3 + 1 * 4,
                 gs_scale=2
             )
-            gs_decoder = networks.GSDepthDecoder(
+            gs_decoder = networks.HRDepthDecoder(
                 num_ch_enc=gs_leverage.num_ch_out,
                 scales=opt.scales
             )

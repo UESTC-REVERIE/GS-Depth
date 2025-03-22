@@ -101,10 +101,14 @@ class Trainer:
             self.parameters_to_train += list(self.models["gs_leverage"].parameters())
             
             # gs feature decoder
-            self.models["gs_decoder"] = networks.GSDepthDecoder(
+            self.models["gs_decoder"] = networks.HRDepthDecoder(
                 num_ch_enc=self.models["gs_leverage"].num_ch_out,
                 scales=self.opt.scales
             )
+            # self.models["gs_decoder"] = networks.HRNetDepthDecoder(
+            #     num_ch_enc=self.models["gs_leverage"].num_ch_out,
+            #     scales=self.opt.scales
+            # )
             self.models["gs_decoder"].to(self.device)
             self.parameters_to_train += list(self.models["gs_decoder"].parameters())
 
@@ -362,6 +366,12 @@ class Trainer:
                 )
                 
                 outputs.update(self.models["gs_decoder"](leveraged_features))
+                
+                # test hrnet decoder baseline(no_gs)
+                # v1
+                # outputs.update(self.models["gs_decoder"](gs_input_features))
+                # v2
+                # outputs.update(self.models["gs_decoder"](features))
             else :
                 for i in self.opt.scales:
                     outputs[("disp", i)] = outputs[("init_disp", i)]
@@ -861,7 +871,32 @@ class Trainer:
         else:
             print("== No checkpoint found at '{}'".format(self.opt.load_weights_folder))
         del checkpoint
-        
+    def load_model(self):
+        """Load model(s) from disk
+        """
+        self.opt.load_weights_folder = os.path.expanduser(self.opt.load_weights_folder)
+
+        assert os.path.isdir(self.opt.load_weights_folder), \
+            "Cannot find folder {}".format(self.opt.load_weights_folder)
+        print("loading model from folder {}".format(self.opt.load_weights_folder))
+
+        for n in self.opt.models_to_load:
+            print("Loading {} weights...".format(n))
+            path = os.path.join(self.opt.load_weights_folder, "{}.pth".format(n))
+            model_dict = self.models[n].state_dict()
+            pretrained_dict = torch.load(path)
+            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+            model_dict.update(pretrained_dict)
+            self.models[n].load_state_dict(model_dict)
+
+        # loading adam state
+        optimizer_load_path = os.path.join(self.opt.load_weights_folder, "adam.pth")
+        if os.path.isfile(optimizer_load_path):
+            print("Loading Adam weights")
+            optimizer_dict = torch.load(optimizer_load_path)
+            self.model_optimizer.load_state_dict(optimizer_dict)
+        else:
+            print("Cannot find Adam weights so Adam is randomly initialized")
     def load_pretrained_model(self, path, models_to_load, frozen):
         """Load model(s) from disk
         """
