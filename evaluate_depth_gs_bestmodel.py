@@ -106,24 +106,9 @@ def evaluate(opt):
         dataloader = DataLoader(dataset, 16, shuffle=False, num_workers=opt.num_workers,
                                 pin_memory=True, drop_last=False)
 
-        encoder = networks.ResnetEncoder(opt.num_layers, False)
-        # encoder = networks.hrnet18(False)
-
         # encoder = networks.ResnetEncoder(opt.num_layers, False)
-        # depth_decoder = networks.DepthDecoder(encoder.num_ch_enc, opt.scales)
-        
-        # depth_decoder = networks.DepthDecoder_MSF_BS_ND2(encoder.num_ch_enc, [0], 
-        #                                                 num_output_channels=1, 
-        #                                                 min_depth=opt.min_depth, 
-        #                                                 max_depth=opt.max_depth)
-        # depth_decoder = networks.DepthDecoder_MSF_BS_ND_INDL_SNL_1conv1x1_32(encoder.num_ch_enc, [0], 
-        # depth_decoder = networks.DepthDecoder_MSF_BS_ND_INDL_SNL_64_32(encoder.num_ch_enc, [0], 
-        # depth_decoder = networks.DepthDecoder_MSF_BS_ND_Inter_Intra(encoder.num_ch_enc, [0], 
-        #                                                 num_output_channels=1, 
-        #                                                 min_depth=opt.min_depth, 
-        #                                                 max_depth=opt.max_depth,
-        #                                                 height=opt.height,
-        #                                                 width=opt.width)
+        encoder = networks.hrnet18(False)
+
         init_decoder = networks.InitDepthDecoder(
             num_ch_enc=encoder.num_ch_enc,
             scales=opt.scales
@@ -134,7 +119,9 @@ def evaluate(opt):
                 scales=opt.scales,
                 height=opt.height, width=opt.width,
                 leveraged_feat_ch=64, 
-                min_depth=opt.min_depth, max_depth=opt.max_depth
+                min_depth=opt.min_depth, max_depth=opt.max_depth,
+                num_ch_concat = 3 + 1 * 4,
+                gs_scale=2
             )
             gs_decoder = networks.GSDepthDecoder(
                 num_ch_enc=gs_leverage.num_ch_out,
@@ -228,17 +215,18 @@ def evaluate(opt):
 
 
         pred_disps = []
-
         print("-> Computing predictions with size {}x{}".format(
             opt.width, opt.height))
 
         with torch.no_grad():
             for data in dataloader:
+                # print(timer) 0- 43
+                # timer += 1
                 # input_color = data[("color", 0, 0)].to(device)
                 input_color = data[("color", 0, 0)].to(device)
                 inv_K = []
                 K = []
-                for scale in range(4):
+                for scale in range(6):
                     inv_K.append(data[("inv_K", scale)].to(device))
                     K.append(data[("K", scale)].to(device))
                 # if opt.gs_scale != 0:
@@ -266,6 +254,7 @@ def evaluate(opt):
                     leveraged_features = gs_leverage(
                         init_features = gs_input_features,
                         init_disps = list(outputs["init_disp", i] for i in opt.scales),
+                        colors = list(data["color", 0, i].to(device) for i in range(6)),
                         inv_K = inv_K, K = K
                     )
                     outputs.update(gs_decoder(leveraged_features))
