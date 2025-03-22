@@ -346,13 +346,18 @@ class Trainer:
                     inv_K.append(inputs[("inv_K", scale)].to(self.device))
                     K.append(inputs[("K", scale)].to(self.device))
 
-            features = self.models["encoder"](inputs["color", 0, 0]) if mode == 'val' else self.models["encoder"](inputs["color_aug", 0, 0])
-
-            outputs, gs_input_features = self.models["init_decoder"](features)
+            if mode == "val":
+                input_colors = list(inputs["color", 0, i] for i in range(6))
+            else:
+                input_colors = list(inputs["color_aug", 0, i] for i in range(6))
+                
+            features = self.models["encoder"](input_colors[0])
+            outputs, _ , _ = self.models["init_decoder"](features)
             if self.opt.use_gs:
                 leveraged_features = self.models["gs_leverage"](
                     init_features = gs_input_features,
                     init_disps = list(outputs["init_disp", i] for i in self.opt.scales),
+                    colors = input_colors,
                     inv_K = inv_K, K = K
                 )
                 
@@ -595,7 +600,8 @@ class Trainer:
                 source_scale = 0
 
             disp = disps[scale]
-            color = inputs[("color", 0, scale+2)]
+            # 只有计算smooth_loss时用到
+            color = inputs[("color", 0, scale+2)] if tag != "" else inputs[("color", 0, scale)]
             target = inputs[("color", 0, source_scale)]
             if self.step % 500 == 0:
                 # TODO 保存变化尺度后的depthmap
@@ -669,7 +675,8 @@ class Trainer:
                 mean_disp = disp.mean(2, True).mean(3, True)
                 norm_disp = disp / (mean_disp + 1e-7)
                 smooth_loss = get_smooth_loss(norm_disp, color)
-                loss += self.opt.disparity_smoothness * smooth_loss / (2 ** (scale + 2))
+                theta = 2 ** (scale + 2) if tag != "" else 2 ** scale
+                loss += self.opt.disparity_smoothness * smooth_loss / theta
                 
             total_loss += loss
             # losses[f"{tag}loss/{scale}"] = loss
