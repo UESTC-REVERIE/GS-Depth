@@ -76,11 +76,11 @@ class GSDepthDecoder(nn.Module):
     def forward(self, input_features):
         self.outputs = {}
         
-        d1_0 = input_features[0]
-        d2_0 = input_features[1]
-        d3_0 = input_features[2]
-        d4_0 = input_features[3]
-        d5_0 = input_features[4]
+        # d1_0 = input_features[0]
+        d2_0 = input_features[0]
+        d3_0 = input_features[1]
+        d4_0 = input_features[2]
+        d5_0 = input_features[3]
 
         d3to2_0 = updown_sample(d3_0, 2)
         d4to3_0 = updown_sample(d4_0, 2)
@@ -127,14 +127,16 @@ class GSDepthDecoder(nn.Module):
         
         d2to1_0 = updown_sample(d2_3, 2)
         d2to1_0 = self.convs[("conv1x1", 2, 1, 0)](d2to1_0)
-        d1_msf_0 = d2to1_0 + d1_0
+        # d1_msf_0 = d2to1_0 + d1_0
 
-        d1_1 = self.convs[("parallel_conv", 1, 0)](d1_msf_0)
+        d1_1 = self.convs[("parallel_conv", 1, 0)](d2to1_0)
+        # d1_1 = self.convs[("parallel_conv", 1, 0)](d1_msf_0)
         d1to0_0 = updown_sample(d1_1, 2)
         d1to0_0 = self.convs[("conv1x1", 1, 0, 0)](d1to0_0)
         
         d0_0 = self.convs[("parallel_conv", 0, 0)](d1to0_0)
         self.outputs[("disp", 0)] = self.sigmoid(self.convs[("dispconv", 0)](d0_0))
+        # self.outputs[("disp", 0)] = self.sigmoid(self.convs[("dispconv", 0)](d1_1))
 
         return self.outputs
     
