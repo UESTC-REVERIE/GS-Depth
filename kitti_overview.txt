@@ -1,0 +1,1116 @@
+~/dataset/KITTI_dataset/
+└── raw_data
+    ├── 2011_09_26
+    │   ├── 2011_09_26_drive_0001_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0002_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0005_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0009_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0011_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0013_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0014_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0015_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0017_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0018_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0019_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0020_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0022_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0023_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0027_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0028_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0029_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0032_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0035_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0036_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0039_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0046_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0048_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0051_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0052_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0056_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0057_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0059_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0060_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0061_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0064_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0070_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0079_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0084_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0086_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0087_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0091_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0093_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0095_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0096_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0101_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0104_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0106_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0113_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0117_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_26_drive_0119_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── calib_cam_to_cam.txt
+    │   ├── calib_imu_to_velo.txt
+    │   └── calib_velo_to_cam.txt
+    ├── 2011_09_28
+    │   ├── 2011_09_28_drive_0001_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0002_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0016_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0021_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0034_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0035_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0037_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0038_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0039_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0043_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0045_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0047_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0053_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0054_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0057_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0065_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0066_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0068_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0070_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0071_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0075_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0077_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0078_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0080_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0082_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0086_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0087_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0089_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0090_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0094_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0095_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0096_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0098_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0100_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0102_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0103_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0104_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0106_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0108_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0110_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0113_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0117_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0119_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0121_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0122_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0125_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0126_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0128_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0132_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0134_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0135_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0136_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0138_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0141_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0143_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0145_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0146_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0149_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0153_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0154_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0155_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0156_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0160_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0161_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0162_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0165_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0166_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0167_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0168_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0171_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0174_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0177_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0179_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0183_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0184_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0185_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0186_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0187_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0191_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0192_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0195_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0198_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0199_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0201_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0204_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0205_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0208_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0209_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0214_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0216_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0220_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0222_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_28_drive_0225_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── calib_cam_to_cam.txt
+    │   ├── calib_imu_to_velo.txt
+    │   └── calib_velo_to_cam.txt
+    ├── 2011_09_29
+    │   ├── 2011_09_29_drive_0004_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_29_drive_0026_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_29_drive_0071_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_29_drive_0108_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── calib_cam_to_cam.txt
+    │   ├── calib_imu_to_velo.txt
+    │   └── calib_velo_to_cam.txt
+    ├── 2011_09_30
+    │   ├── 2011_09_30_drive_0016_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_30_drive_0018_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_30_drive_0020_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_30_drive_0027_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_30_drive_0028_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_30_drive_0033_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_30_drive_0034_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── 2011_09_30_drive_0072_sync
+    │   │   ├── image_00
+    │   │   ├── image_01
+    │   │   ├── image_02
+    │   │   ├── image_03
+    │   │   ├── oxts
+    │   │   └── velodyne_points
+    │   ├── calib_cam_to_cam.txt
+    │   ├── calib_imu_to_velo.txt
+    │   └── calib_velo_to_cam.txt
+    └── 2011_10_03
+        ├── 2011_10_03_drive_0027_sync
+        │   ├── image_00
+        │   ├── image_01
+        │   ├── image_02
+        │   ├── image_03
+        │   ├── oxts
+        │   └── velodyne_points
+        ├── 2011_10_03_drive_0034_sync
+        │   ├── image_00
+        │   ├── image_01
+        │   ├── image_02
+        │   ├── image_03
+        │   ├── oxts
+        │   └── velodyne_points
+        ├── 2011_10_03_drive_0042_sync
+        │   ├── image_00
+        │   ├── image_01
+        │   ├── image_02
+        │   ├── image_03
+        │   ├── oxts
+        │   └── velodyne_points
+        ├── 2011_10_03_drive_0047_sync
+        │   ├── image_00
+        │   ├── image_01
+        │   ├── image_02
+        │   ├── image_03
+        │   ├── oxts
+        │   └── velodyne_points
+        ├── 2011_10_03_drive_0058_sync
+        │   ├── image_00
+        │   ├── image_01
+        │   ├── image_02
+        │   ├── image_03
+        │   ├── oxts
+        │   └── velodyne_points
+        ├── calib_cam_to_cam.txt
+        ├── calib_imu_to_velo.txt
+        └── calib_velo_to_cam.txt
+
+1098 directories, 15 files
