@@ -260,10 +260,16 @@ class Trainer:
     def train(self):
         """Run the entire training pipeline
         """
+        start_epoch = self.opt.start_epoch
         self.epoch = 0
         self.step = 0
+        
+        if self.opt.resume_checkpoint_path is not None:
+            self.load_checkpoint_resume(self.opt.resume_checkpoint_path)
+            start_epoch = self.epoch + 1
+        
         self.start_time = time.time()
-        for self.epoch in range(self.opt.start_epoch, self.opt.num_epochs):
+        for self.epoch in range(start_epoch, self.opt.num_epochs):
             self.run_epoch()
             if (self.epoch + 1) % self.opt.save_frequency == 0 and self.epoch >= 15:
                 self.save_model()
