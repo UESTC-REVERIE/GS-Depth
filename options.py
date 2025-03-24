@@ -222,7 +222,10 @@ class MonodepthOptions:
                                    type=str,
                                    help="models to load",
                                    default=["encoder", "depth", "pose_encoder", "pose"])
-          
+          self.parser.add_argument("--resume_checkpoint_path", 
+                                   type=str, 
+                                   default=None,
+                                   help="要恢复的检查点路径")
           # LOGGING pretrained models options
           self.parser.add_argument("--pretrained_model_path",
                                    type=str,

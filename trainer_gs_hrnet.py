@@ -359,19 +359,13 @@ class Trainer:
             outputs, _ , _ = self.models["init_decoder"](features)
             if self.opt.use_gs:
                 leveraged_features = self.models["gs_leverage"](
-                    init_features = gs_input_features,
+                    init_features = features,
                     init_disps = list(outputs["init_disp", i] for i in self.opt.scales),
                     colors = input_colors,
                     inv_K = inv_K, K = K
                 )
                 
                 outputs.update(self.models["gs_decoder"](leveraged_features))
-                
-                # test hrnet decoder baseline(no_gs)
-                # v1
-                # outputs.update(self.models["gs_decoder"](gs_input_features))
-                # v2
-                # outputs.update(self.models["gs_decoder"](features))
             else :
                 for i in self.opt.scales:
                     outputs[("disp", i)] = outputs[("init_disp", i)]
@@ -512,20 +506,7 @@ class Trainer:
                 model_save_name = 'model_{}_{}_best_{}_{:.5f}.pth'.format(self.epoch, batch_idx, eval_metrics[i], measure)
                 
                 print('New best for {}. Saving model: {}'.format(eval_metrics[i], model_save_name))
-                checkpoint = {'best_epoch': self.epoch,
-                            'best_batch': batch_idx,
-                                'encoder': self.models["encoder"].state_dict(),
-                                'init_decoder': self.models["init_decoder"].state_dict(),
-                                'gs_leverage': self.models["gs_leverage"].state_dict() if self.opt.use_gs else None,
-                                'gs_decoder': self.models["gs_decoder"].state_dict() if self.opt.use_gs else None,
-                                'pose_encoder': self.models["pose_encoder"].state_dict(),
-                                'pose': self.models["pose"].state_dict(),
-                                'optimizer': self.model_optimizer.state_dict(),
-                                'best_eval_measures_higher_better': self.best_eval_measures_higher_better,
-                                'best_eval_measures_lower_better': self.best_eval_measures_lower_better,
-                                'optimizer': self.model_optimizer.state_dict(),
-                                }
-                torch.save(checkpoint, os.path.join(self.log_path, "models", model_save_name))
+                self.save_checkpoint(os.path.join(self.log_path, "models", model_save_name))
 
         del inputs, outputs, eval_measures
 
@@ -837,68 +818,84 @@ class Trainer:
 
         save_path = os.path.join(save_folder, "{}.pth".format("adam"))
         torch.save(self.model_optimizer.state_dict(), save_path)
+        
+    def save_checkpoint(self, save_path):
+        """保存完整训练状态"""
+        checkpoint = {
+            'epoch': self.epoch,
+            'step': self.step,
+ 
+            'encoder': self.models["encoder"].state_dict(),
+            'init_decoder': self.models["init_decoder"].state_dict(),
+            'gs_leverage': self.models["gs_leverage"].state_dict() if self.opt.use_gs else None,
+            'gs_decoder': self.models["gs_decoder"].state_dict() if self.opt.use_gs else None,
+            'pose_encoder': self.models["pose_encoder"].state_dict(),
+            'pose': self.models["pose"].state_dict(),
 
-    def load_model_checkpoints(self):
-        """Load model(s) from disk
+            'optimizer_state': self.model_optimizer.state_dict(),
+            'scheduler_state': self.model_lr_scheduler.state_dict(),
+            'best_metrics': {
+                'lower': self.best_eval_measures_lower_better,
+                'higher': self.best_eval_measures_higher_better,
+                'epochs': self.best_eval_epochs,
+                'batch_idxs': self.best_eval_batch_idxs
+            },
+            'rng_states': {  # 随机数状态
+                'cpu': torch.get_rng_state(),
+                'cuda': torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
+            }
+        }
+        torch.save(checkpoint, save_path)
+        
+    def load_checkpoint_resume(self, path):
+        """Load model(s) from disk for retrain
         """
-        self.opt.load_weights_folder = os.path.expanduser(self.opt.load_weights_folder)
+        # self.opt.load_weights_folder = os.path.expanduser(self.opt.load_weights_folder)
 
-        # assert os.path.isdir(self.opt.load_weights_folder), \
-        #     "Cannot find folder {}".format(self.opt.load_weights_folder)
-        print("loading model from folder {}".format(self.opt.load_weights_folder))
+        assert not os.path.isdir(path), \
+            "--resume_checkpoint_path should be a model file, but {} is a directory".format(path)
+        print("loading model to resume from path {}".format(path))
 
         # if self.opt.load_weights_folder != '':
-        if os.path.isfile(self.opt.load_weights_folder):
-            print("== Loading checkpoint '{}'".format(self.opt.load_weights_folder))
-            checkpoint = torch.load(self.opt.load_weights_folder)
-
-            for n in self.opt.models_to_load:
-                print("Loading {} weights...".format(n))
-                model_dict = self.models[n].state_dict()
-                pretrained_dict = checkpoint["{}".format(n)]
-                pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-                model_dict.update(pretrained_dict)
-                self.models[n].load_state_dict(model_dict)
-
-            # loading adam state
-            print("Loading Adam weights")
-            self.model_optimizer.load_state_dict(checkpoint['optimizer'])
+        if os.path.isfile(path):
+            checkpoint = torch.load(path)
+            # 恢复模型参数
+            for name, model in self.models.items():
+                print("Loading {} weights...".format(name))
+                assert name in checkpoint, \
+                    f"in loaded resume checkpoint, we not found the model named {name}! "
+                model.load_state_dict(checkpoint[name])
+                    
+            # 恢复优化器和调度器
+            print("Loading Adam and Scheduler weights")
+            self.model_optimizer.load_state_dict(checkpoint['optimizer_state'])
+            self.model_lr_scheduler.load_state_dict(checkpoint['scheduler_state'])
+            
+            # 关键设置：确保调度器从正确epoch开始
+            print("Resume Scheduler from epoch {}".format(checkpoint['epoch']))
+            self.model_lr_scheduler.last_epoch = checkpoint['epoch']  
+            
+            # 恢复训练状态
+            print(f"Continue Training from epoch {checkpoint['epoch']} step {checkpoint['step']}")
+            self.epoch = checkpoint['epoch']
+            self.step = checkpoint['step']
+            
+            # 恢复随机数状态
+            print("Resume pytorch random status")
+            torch.set_rng_state(checkpoint['rng_states']['cpu'])
+            if torch.cuda.is_available() and checkpoint['rng_states']['cuda']:
+                torch.cuda.set_rng_state_all(checkpoint['rng_states']['cuda'])
             # loading best values
-            self.best_epoch = checkpoint['best_epoch']
-            self.best_batch = checkpoint['best_batch']
-            self.best_eval_measures_higher_better = checkpoint['best_eval_measures_higher_better'].cpu()
-            self.best_eval_measures_lower_better = checkpoint['best_eval_measures_lower_better'].cpu()
+            self.best_eval_epochs = checkpoint['best_metrics']['epochs']
+            self.best_eval_batch_idxs = checkpoint['best_metrics']['batch_idxs']
+            self.best_eval_measures_higher_better = checkpoint['best_metrics']['higher'].cpu()
+            self.best_eval_measures_lower_better = checkpoint['best_metrics']['lower'].cpu()
         else:
             print("== No checkpoint found at '{}'".format(self.opt.load_weights_folder))
         del checkpoint
-    def load_model(self):
-        """Load model(s) from disk
-        """
-        self.opt.load_weights_folder = os.path.expanduser(self.opt.load_weights_folder)
-
-        assert os.path.isdir(self.opt.load_weights_folder), \
-            "Cannot find folder {}".format(self.opt.load_weights_folder)
-        print("loading model from folder {}".format(self.opt.load_weights_folder))
-
-        for n in self.opt.models_to_load:
-            print("Loading {} weights...".format(n))
-            path = os.path.join(self.opt.load_weights_folder, "{}.pth".format(n))
-            model_dict = self.models[n].state_dict()
-            pretrained_dict = torch.load(path)
-            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-            model_dict.update(pretrained_dict)
-            self.models[n].load_state_dict(model_dict)
-
-        # loading adam state
-        optimizer_load_path = os.path.join(self.opt.load_weights_folder, "adam.pth")
-        if os.path.isfile(optimizer_load_path):
-            print("Loading Adam weights")
-            optimizer_dict = torch.load(optimizer_load_path)
-            self.model_optimizer.load_state_dict(optimizer_dict)
-        else:
-            print("Cannot find Adam weights so Adam is randomly initialized")
+        
     def load_pretrained_model(self, path, models_to_load, frozen):
-        """Load model(s) from disk
+        """Load pretrained model(s) from disk
         """
         path = os.path.expanduser(path)
 
@@ -914,6 +911,7 @@ class Trainer:
                 print("Loading {} weights...".format(n))
                 model_dict = self.models[n].state_dict()
                 pretrained_dict = checkpoint["{}".format(n)]
+                # 只加载现在版本代码中模型存在的组件
                 pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
                 model_dict.update(pretrained_dict)
                 self.models[n].load_state_dict(model_dict)

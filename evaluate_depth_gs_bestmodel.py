@@ -249,10 +249,11 @@ def evaluate(opt):
                     # Post-processed results require each image to have two forward passes
                     input_color = torch.cat((input_color, torch.flip(input_color, [3])), 0)
 
-                outputs , gs_input_features = init_decoder(encoder(input_color))
+                encoder_features = encoder(input_color)
+                outputs , _ , _ = init_decoder(encoder_features)
                 if opt.use_gs:
                     leveraged_features = gs_leverage(
-                        init_features = gs_input_features,
+                        init_features = encoder_features,
                         init_disps = list(outputs["init_disp", i] for i in opt.scales),
                         colors = list(data["color", 0, i].to(device) for i in range(6)),
                         inv_K = inv_K, K = K
