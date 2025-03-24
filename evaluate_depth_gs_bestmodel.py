@@ -26,9 +26,6 @@ splits_dir = os.path.join(os.path.dirname(__file__), "splits")
 # to convert our stereo predictions to real-world scale we multiply our depths by 5.4.
 STEREO_SCALE_FACTOR = 5.4
 
-# data_len = 0
-
-#CUDA_VISIBLE_DEVICES=0 python evaluate_depth.py --load_weights_folder /models/RA-Depth/ --eval_mono --height 192 --width 640 --scales 0 --data_path /datasets/Kitti/Kitti_raw_data --png
 
 def compute_errors(gt, pred):
     """Computation of error metrics between predicted and ground truth depths
@@ -78,20 +75,20 @@ def evaluate(opt):
 
     if opt.ext_disp_to_eval is None:
 
-        opt.load_weights_folder = os.path.expanduser(opt.load_weights_folder)
+        opt.load_weights_path = os.path.expanduser(opt.load_weights_path)
 
-        assert os.path.isfile(opt.load_weights_folder), \
-            "Cannot find a folder at {}".format(opt.load_weights_folder)
+        assert os.path.isfile(opt.load_weights_path), \
+            "Cannot find a folder at {}".format(opt.load_weights_path)
 
-        print("-> Loading weights from {}".format(opt.load_weights_folder))
+        print("-> Loading weights from {}".format(opt.load_weights_path))
 
         filenames = readlines(os.path.join(splits_dir, opt.eval_split, "test_files.txt"))
-        # encoder_path = os.path.join(opt.load_weights_folder, "encoder.pth")
-        # decoder_path = os.path.join(opt.load_weights_folder, "depth.pth")
+        # encoder_path = os.path.join(opt.load_weights_path, "encoder.pth")
+        # decoder_path = os.path.join(opt.load_weights_path, "depth.pth")
 
         # encoder_dict = torch.load(encoder_path, map_location=device)
 
-        checkpoint = torch.load(opt.load_weights_folder)
+        checkpoint = torch.load(opt.load_weights_path)
 
         if opt.eval_split == 'cityscapes':
             dataset = datasets.CityscapesEvalDataset(opt.data_path, filenames,
@@ -127,30 +124,6 @@ def evaluate(opt):
                 num_ch_enc=gs_leverage.num_ch_out,
                 scales=opt.scales
             )
-        # depth_decoder = networks.DepthDecoder_MSF_GS_FiTAlter(encoder.num_ch_enc, 
-        #                                             opt.scales,
-        #                                             num_output_channels=1,
-        #                                             use_gs=opt.use_gs, 
-        #                                             gs_scale=opt.gs_scale, 
-        #                                             min_depth=opt.min_depth, 
-        #                                             max_depth=opt.max_depth, 
-        #                                             height=opt.height, 
-        #                                             width=opt.width)
-        # depth_decoder = networks.DepthDecoder_MSF(encoder.num_ch_enc, 
-        #                                                     [0], 
-        #                                                     num_output_channels=1, 
-        #                                                     min_depth=opt.min_depth, 
-        #                                                     max_depth=opt.max_depth
-        #                                                     )
-
-        # model_dict = encoder.state_dict()
-        # encoder.load_state_dict({k: v for k, v in encoder_dict.items() if k in model_dict})
-        # depth_decoder.load_state_dict(torch.load(decoder_path, map_location=device))
-
-        # encoder.to(device)
-        # encoder.eval()
-        # depth_decoder.to(device)
-        # depth_decoder.eval()
         encoder_dict = checkpoint["encoder"]
         model_dict = encoder.state_dict()
         encoder.load_state_dict({k: v for k, v in encoder_dict.items() if k in model_dict})
@@ -167,22 +140,6 @@ def evaluate(opt):
             gs_decoder_dict = checkpoint["gs_decoder"]
             model_dict = gs_decoder.state_dict()
             gs_decoder.load_state_dict({k: v for k, v in gs_decoder_dict.items() if k in model_dict})
-        # # TODO 修改加载模型时不使用gs时不加载高斯模型
-        # filtered_dict = checkpoint["depth"]
-        # if not opt.use_gs:
-        #     # 定义需要排除的关键字列表
-        #     exclude_keywords = ["rotation", "scale", "opacity", 
-        #                         "feature_leve", "backprojector", 
-        #                         "rasterizer", "feature_resume_conv"]
-        #     current_keys = depth_decoder.state_dict().keys()
-        #     # print("current_keys: ", current_keys)
-
-        #     filtered_dict = {
-        #         k: v for k, v in checkpoint["depth"].items() 
-        #         if not any(keyword in k for keyword in exclude_keywords)
-        #     }
-        # # print("filtered_dict: ", filtered_dict.keys())
-        # depth_decoder.load_state_dict(filtered_dict, strict=False)
 
         encoder.to(device)
         encoder.eval()
@@ -229,21 +186,6 @@ def evaluate(opt):
                 for scale in range(6):
                     inv_K.append(data[("inv_K", scale)].to(device))
                     K.append(data[("K", scale)].to(device))
-                # if opt.gs_scale != 0:
-                #     inv_K.append(data[("inv_K_gs", opt.gs_scale)].to(device))
-                #     K.append(data[("K_gs", opt.gs_scale)].to(device))
-                # else:
-                #     inv_K.append(data[("inv_K_gs", 1)].to(device))
-                #     inv_K.append(data[("inv_K_gs", 2)].to(device))
-                #     inv_K.append(data[("inv_K_gs", 3)].to(device))
-                #     inv_K.append(data[("inv_K_gs", 4)].to(device))
-                #     inv_K.append(data[("inv_K_gs", 5)].to(device))
-
-                #     K.append(data[("K_gs", 1)].to(device))
-                #     K.append(data[("K_gs", 2)].to(device))
-                #     K.append(data[("K_gs", 3)].to(device))
-                #     K.append(data[("K_gs", 4)].to(device))
-                #     K.append(data[("K_gs", 5)].to(device))
 
                 if opt.post_process:
                     # Post-processed results require each image to have two forward passes
@@ -273,7 +215,7 @@ def evaluate(opt):
 
         pred_disps = np.concatenate(pred_disps)
 
-    else:
+    else: # 加载导出的视差图以评估
         # Load predictions from file
         print("-> Loading predictions from {}".format(opt.ext_disp_to_eval))
         pred_disps = np.load(opt.ext_disp_to_eval)

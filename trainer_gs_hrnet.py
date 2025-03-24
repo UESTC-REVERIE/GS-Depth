@@ -95,7 +95,9 @@ class Trainer:
                 height=self.opt.height, width=self.opt.width,
                 # TODO 修改光栅器默认输出维度不为64
                 leveraged_feat_ch=64, 
-                min_depth=self.opt.min_depth, max_depth=self.opt.max_depth
+                min_depth=self.opt.min_depth, max_depth=self.opt.max_depth,
+                num_ch_concat = 3 + 1 * 4, 
+                gs_scale=2
             )
             self.models["gs_leverage"].to(self.device)
             self.parameters_to_train += list(self.models["gs_leverage"].parameters())
@@ -162,7 +164,7 @@ class Trainer:
         # endregion
         
         # region retrain
-        if self.opt.load_weights_folder is not None:
+        if self.opt.load_weights_path is not None:
             # self.load_model()
             self.load_model_checkpoints()
             self.model_optimizer.param_groups[0]['lr'] = self.opt.learning_rate
@@ -856,13 +858,11 @@ class Trainer:
     def load_checkpoint_resume(self, path):
         """Load model(s) from disk for retrain
         """
-        # self.opt.load_weights_folder = os.path.expanduser(self.opt.load_weights_folder)
 
         assert not os.path.isdir(path), \
             "--resume_checkpoint_path should be a model file, but {} is a directory".format(path)
         print("loading model to resume from path {}".format(path))
 
-        # if self.opt.load_weights_folder != '':
         if os.path.isfile(path):
             checkpoint = torch.load(path)
             # 恢复模型参数
@@ -897,7 +897,7 @@ class Trainer:
             self.best_eval_measures_higher_better = checkpoint['best_metrics']['higher'].cpu()
             self.best_eval_measures_lower_better = checkpoint['best_metrics']['lower'].cpu()
         else:
-            print("== No checkpoint found at '{}'".format(self.opt.load_weights_folder))
+            print("== No checkpoint found at '{}'".format(path))
         del checkpoint
         
     def load_pretrained_model(self, path, models_to_load, frozen):
@@ -934,5 +934,5 @@ class Trainer:
                     print(f"Frozen the pretrained model: {n}")
             del checkpoint  
         else:
-            print("== No checkpoint found at '{}'".format(self.opt.load_weights_folder))
+            print("== No checkpoint found at '{}'".format(path))
 

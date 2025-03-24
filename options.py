@@ -214,6 +214,9 @@ class MonodepthOptions:
                                    default=12)
 
           # LOADING to retrain options
+          self.parser.add_argument("--load_weights_path",
+                                   type=str,
+                                   help="path of model to load for retrain or eval")
           self.parser.add_argument("--load_weights_folder",
                                    type=str,
                                    help="name of model to load")
@@ -225,11 +228,11 @@ class MonodepthOptions:
           self.parser.add_argument("--resume_checkpoint_path", 
                                    type=str, 
                                    default=None,
-                                   help="要恢复的检查点路径")
+                                   help="the path of checkpoint for resume interrupted training")
           # LOGGING pretrained models options
           self.parser.add_argument("--pretrained_model_path",
                                    type=str,
-                                   help="pretrained model path",)
+                                   help="the path of pretrained model to load",)
           self.parser.add_argument("--pretrained_models_to_load",
                                    nargs="+",
                                    type=str,
