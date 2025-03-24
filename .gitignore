@@ -3,5 +3,6 @@ models/
 **/*.npz
 **/*.npy
 .idea/
+discard/
 .vscode/
 slurm.out/
