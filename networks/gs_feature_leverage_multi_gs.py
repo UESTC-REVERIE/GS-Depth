@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from layers import *
-from networks.init_depth_decode_hrnet import InitDepthDecoder
+from networks.init_depth_decode_resnet import InitDepthDecoder
 
 # 根据统一的分辨率高斯光栅化不同的分辨率特征，
 # 使用se注意力机制，
@@ -22,10 +22,10 @@ class GaussianFeatureLeverage(nn.Module):
             min_depth (float, optional): min depth. Defaults to 0.1.
             max_depth (float, optional): max depth. Defaults to 100.0.
             multi_scale_gs (bool, optional): 每个尺度独立预测高斯或只预测一个统一的高斯表达，默认每个尺度独自预测高斯. Defaults to True.
-            split_dimensions: 高斯参数预测头的通道划分
+            split_dimensions: 高斯参数预测头的通道划分[offset_s, opacity_s, scale_s, rotation_s]
         """
         super().__init__()
-        self.num_ch_in = num_ch_in # np.array([18, 36, 72, 144])
+        self.num_ch_in = num_ch_in[-4:] # np.array([18, 36, 72, 144])
         self.leveraged_feat_ch = leveraged_feat_ch # gs光栅化后统一的特征维度
         self.num_ch_out = np.array([18, 36, 72, 144])
         self.scales = scales
@@ -41,7 +41,7 @@ class GaussianFeatureLeverage(nn.Module):
         self.convs = OrderedDict()
         self.backprojector = OrderedDict()
         self.rasterizer = OrderedDict()
-        total_ch_in = sum(num_ch_in) + num_ch_concat
+        total_ch_in = sum(self.num_ch_in) + num_ch_concat
         
         # print(f"using option: predict {self.gs_num_pixel} gs per pixel")
         # rotation scale opacity depth-offset
@@ -50,6 +50,7 @@ class GaussianFeatureLeverage(nn.Module):
                 num_ch_enc=self.num_ch_in,
                 scales=self.scales
             ) if i != 0 else None
+            # print(f"total_ch_in is {total_ch_in}")
             self.convs[("gs_head_conv", i)] = self.create_gaussian_head(total_ch_in, sum(self.split_dimensions))
             self.convs[("gs_feature_leve_conv", i)] = nn.Sequential(
                 ConvBlock(total_ch_in, total_ch_in),
@@ -64,20 +65,20 @@ class GaussianFeatureLeverage(nn.Module):
         for i in range(4):
             # Up-Rasterization 4, 8, 16, 32
             scale = 2 ** ( i + 2 )
-            self.rasterizer[i] = Rasterize_Gaussian_Feature_FiT3D_v1(
+            self.rasterizer[i] = Rasterize_Gaussian_Feature_FiT3D_v2(
                 image_height = self.height // scale,
                 image_width = self.width // scale,
                 min_depth = self.min_depth,
                 max_depth = self.max_depth)
             self.rasterizer[i].to("cuda")
-            _num_ch_in = leveraged_feat_ch * self.gs_num_pixel + num_ch_in[i] + 1 + 3
+            _num_ch_in = leveraged_feat_ch * self.gs_num_pixel + self.num_ch_in[i] + 1 + 3
             self.convs[("gs_feature_resume_conv", i)] = nn.Sequential(
                 SEBlock(_num_ch_in), # 添加SE注意力机制，选择融合特征中更重要的特征
                 ConvBlock(_num_ch_in, self.num_ch_out[i])
             )
         self.gs_leverage = nn.ModuleList(list(self.convs.values()))
 
-    def forward(self, init_features, colors, init_disps, inv_K, K):
+    def forward(self, init_features, colors, init_disps, inv_K, K, T=None):
         init_features = init_features[-4:]
         leveraged_features = []
         # init_disps: 1/4~1/32
@@ -89,6 +90,7 @@ class GaussianFeatureLeverage(nn.Module):
         w = self.width // (2 ** self.gs_scale)
         disp = F.interpolate(disp, [h, w], mode="bilinear", align_corners=False)
         features = []
+        gs_features = {}
         # 基本特征融合
         for i in range(4):
             features = features + [F.interpolate(init_features[i], [h, w], mode="bilinear", align_corners=False)]
@@ -124,15 +126,17 @@ class GaussianFeatureLeverage(nn.Module):
             gs_feature[i] = gs_feature[i].view(bs, -1, gs_feature[i].shape[-1])
         
         for i in range(4): # different scales feature
-            gs_features = []
-            for gs_index in range(self.gs_num_pixel): # multi-gs per pixel
-                leveraged_feature = self.rasterizer[i](position[gs_index], rotation[gs_index], scale[gs_index], opacity[gs_index], gs_feature[gs_index], inv_K[i+2], K[i+2])
-                gs_features += [leveraged_feature]
-            fused_features = gs_features + [init_features[i]] + [colors[i+2]] + [init_disps[i]] # 融合其他特征
+            gs_feat_stack = self.rasterize_per_pixel(position, rotation, scale, opacity, gs_feature, K, i)
+            if not T is None:
+                gs_features[(0, i)] = torch.cat(gs_feat_stack, 1)
+                for frame_id, transformation in T.items():
+                    # TODO 这里计算的是1/4~1/32的高斯特征用于计算损失，考虑是否可以改到全分辨率
+                    gs_features[(frame_id, i)] = torch.cat(self.rasterize_per_pixel(position, rotation, scale, opacity, gs_feature, K, i, transformation), 1)
+            fused_features = gs_feat_stack + [init_features[i]] + [colors[i+2]] + [init_disps[i]] # 融合其他特征
             fused_features = torch.cat(fused_features, 1)
             leveraged_features.append(self.convs[("gs_feature_resume_conv", i)](fused_features))
             
-        return leveraged_features
+        return leveraged_features, gs_features
     
     def gs_generator(self, depth, bs, inv_k, gs_params):
         
@@ -179,7 +183,12 @@ class GaussianFeatureLeverage(nn.Module):
             # ConvBlock(in_ch, in_ch)
             # Conv3x3(in_ch, out_ch)
         )
-        
+    def rasterize_per_pixel(self, position, rotation, scale, opacity, gs_feature, K, index, T=None):
+        gs_feat_stack = []
+        for gs_index in range(self.gs_num_pixel): # multi-gs per pixel
+            leveraged_feature = self.rasterizer[index](position[gs_index], rotation[gs_index], scale[gs_index], opacity[gs_index], gs_feature[gs_index],  K[index+2], T)
+            gs_feat_stack += [leveraged_feature]
+        return gs_feat_stack
 class SEBlock(nn.Module):
     def __init__(self, channel, reduction=16):
         super(SEBlock, self).__init__()

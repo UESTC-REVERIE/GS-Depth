@@ -102,6 +102,10 @@ class MonodepthOptions:
                                    type=int,
                                    help="use gs at one scale",
                                    default=32)
+          self.parser.add_argument("--gs_num_per_pixel",
+                                   type=int,
+                                   help="the number of gs per pixel",
+                                   default=1)
           self.parser.add_argument("--loss_gs_weight",
                                    type=float,
                                    help="weight of dx depth",
@@ -110,6 +114,10 @@ class MonodepthOptions:
                                    type=float,
                                    help="weight of dx depth",
                                    default=0)
+          self.parser.add_argument("--loss_perception_weight",
+                                   type=float,
+                                   help="weight of dx depth",
+                                   default=1e-3)
           self.parser.add_argument("--use_interframe_consistency",
                                    help="if set, uses 3d gs",
                                    action="store_true")
