@@ -110,15 +110,20 @@ def evaluate(opt):
             num_ch_enc=encoder.num_ch_enc,
             scales=opt.scales
         )
+        # init_decoder = networks.HRDepthDecoder(
+        #     num_ch_enc=encoder.num_ch_enc,
+        #     scales=opt.scales
+        # )
         if opt.use_gs:
             gs_leverage = networks.GaussianFeatureLeverage(
-                num_ch_in=init_decoder.num_ch_dec, 
+                num_ch_in=encoder.num_ch_enc, 
                 scales=opt.scales,
                 height=opt.height, width=opt.width,
                 leveraged_feat_ch=64, 
                 min_depth=opt.min_depth, max_depth=opt.max_depth,
                 num_ch_concat = 3 + 1 * 4,
-                gs_scale=2
+                gs_scale=opt.gs_scale,
+                gs_num_pixel=opt.gs_num_per_pixel
             )
             gs_decoder = networks.HRDepthDecoder(
                 num_ch_enc=gs_leverage.num_ch_out,
@@ -192,7 +197,11 @@ def evaluate(opt):
                     input_color = torch.cat((input_color, torch.flip(input_color, [3])), 0)
 
                 encoder_features = encoder(input_color)
-                outputs , _ , _ = init_decoder(encoder_features)
+                # outputs , _ , _ = init_decoder(encoder_features)
+                outputs = {}
+                init_outputs, _, _ = init_decoder(encoder_features)
+                for k,v in init_outputs.items():
+                    outputs[("init_disp", k[1])] = v
                 if opt.use_gs:
                     leveraged_features = gs_leverage(
                         init_features = encoder_features,
@@ -244,7 +253,7 @@ def evaluate(opt):
         quit()
 
     elif opt.eval_split == 'benchmark':
-        save_dir = os.path.join(opt.load_weights_folder, "benchmark_predictions")
+        save_dir = os.path.join(os.path.dirname(opt.load_weights_path), "benchmark_predictions")
         print("-> Saving out benchmark predictions to {}".format(save_dir))
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
