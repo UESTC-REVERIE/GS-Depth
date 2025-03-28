@@ -84,6 +84,18 @@ class HRDepthDecoder(nn.Module):
             Conv3x3(stage_0_ch_num, stage_0_ch_num // 2),
             Conv3x3(stage_0_ch_num // 2, self.num_output_channels),
         )
+        self.convs[("dispconv", 1)] = nn.Sequential(
+            Conv3x3(stage_1_ch_num, stage_1_ch_num // 2),
+            Conv3x3(stage_1_ch_num // 2, self.num_output_channels),
+        )
+        self.convs[("dispconv", 2)] = nn.Sequential(
+            Conv3x3(stage_2_ch_num, stage_2_ch_num // 2),
+            Conv3x3(stage_2_ch_num // 2, self.num_output_channels),
+        )
+        self.convs[("dispconv", 3)] = nn.Sequential(
+            Conv3x3(stage_3_ch_num, stage_3_ch_num // 2),
+            Conv3x3(stage_3_ch_num // 2, self.num_output_channels),
+        )
 
         self.decoder = nn.ModuleList(list(self.convs.values()))
         self.sigmoid = nn.Sigmoid()
@@ -92,6 +104,9 @@ class HRDepthDecoder(nn.Module):
 
     def forward(self, input_features):
         self.outputs = {}
+        
+        # TODO 修改为输出多分辨率深度图
+        input_features = input_features[-4:]
         
         # d1_0 = input_features[0]
         d2_0 = input_features[0]
@@ -135,12 +150,14 @@ class HRDepthDecoder(nn.Module):
 
         d2_2 = self.convs[("parallel_conv", 2, 1)](d2_msf_1)
         d3_2 = self.convs[("parallel_conv", 3, 1)](d3_msf_1)
+        self.outputs[("disp", 3)] = self.sigmoid(self.convs[("dispconv", 3)](d3_2))
         
         d3to2_2 = updown_sample(d3_2, 2)
         d3to2_2 = self.convs[("conv1x1", 3, 2, 2)](d3to2_2)
         d2_msf_2 = d3to2_2 + d2_2
 
         d2_3 = self.convs[("parallel_conv", 2, 2)](d2_msf_2)
+        self.outputs[("disp", 2)] = self.sigmoid(self.convs[("dispconv", 2)](d2_3))
         
         d2to1_0 = updown_sample(d2_3, 2)
         d2to1_0 = self.convs[("conv1x1", 2, 1, 0)](d2to1_0)
@@ -148,6 +165,7 @@ class HRDepthDecoder(nn.Module):
 
         d1_1 = self.convs[("parallel_conv", 1, 0)](d2to1_0)
         # d1_1 = self.convs[("parallel_conv", 1, 0)](d1_msf_0)
+        self.outputs[("disp", 1)] = self.sigmoid(self.convs[("dispconv", 1)](d1_1))
         d1to0_0 = updown_sample(d1_1, 2)
         d1to0_0 = self.convs[("conv1x1", 1, 0, 0)](d1to0_0)
         

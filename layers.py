@@ -275,6 +275,85 @@ class Rasterize_Gaussian_Feature_FiT3D_v1(nn.Module):
         # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
         # They will be excluded from value updates used in the splitting criteria.
         return gs_features.contiguous()
+    
+class Rasterize_Gaussian_Feature_FiT3D_v2(nn.Module):
+    def __init__(self, image_height, image_width, min_depth=0.1, max_depth=100.0, scaling_modifier=1.0):
+        super(Rasterize_Gaussian_Feature_FiT3D_v2, self).__init__()
+        # Set up rasterization configuration
+        self.image_height = image_height
+        self.image_width = image_width
+        self.scaling_modifier = scaling_modifier
+        self.min_depth = min_depth
+        self.max_depth = max_depth
+
+    def forward(self, position, rotation, scale, opacity, feature, K, T=None):
+        bs = position.shape[0]
+        gs_features = torch.zeros(bs, feature.shape[2], self.image_height, self.image_width).to(device=feature.device)
+        # print(self.image_height, self.image_width)
+        # gs_features = torch.zeros(bs, 256, self.image_height, self.image_width).to(device=feature.device)
+        # Rasterize visible Gaussians to image, obtain their radii (on screen).
+        for index in range(bs):
+            fx, fy = K[index, 0, 0], K[index, 1, 1]
+            FoVx, FoVy = focal2fov(fx, self.image_width), focal2fov(fy, self.image_height)
+
+            tanfovx = math.tan(FoVx* 0.5)
+            tanfovy = math.tan(FoVy * 0.5)
+            if T is None:
+                world_view_transform = torch.zeros(4, 4).to(device=feature.device)
+                world_view_transform[0, 0] = 1
+                world_view_transform[1, 1] = 1
+                world_view_transform[2, 2] = 1
+                world_view_transform[3, 3] = 1
+                world_view_transform = world_view_transform.transpose(0,1)
+                camera_center = torch.zeros(1, 3).to(device=feature.device)
+            else:
+                # 转换为列优先存储
+                world_view_transform = T[index].transpose(0,1).to(feature.device)
+                camera_center = world_view_transform.inverse()[3, :3]
+            
+            full_proj_transform = getProjectionMatrix(znear=0.01, zfar=self.max_depth, fovX=FoVx, fovY=FoVy).transpose(0,1).to(device=feature.device)
+            bg_color = [1, 1, 1]
+            background = torch.tensor(bg_color, dtype=torch.float32, device=feature.device) 
+            raster_settings = GaussianRasterizationSettings(
+                image_height=self.image_height,
+                image_width=self.image_width,
+                tanfovx=tanfovx,
+                tanfovy=tanfovy,
+                bg=background,
+                scale_modifier=self.scaling_modifier,
+                viewmatrix=world_view_transform,
+                projmatrix=full_proj_transform,
+                sh_degree=1,
+                campos=camera_center,
+                prefiltered=False,
+                debug=False
+            )
+            rasterizer = GaussianRasterizer(raster_settings=raster_settings)
+            means2D_per = torch.zeros_like(position[index], dtype=position.dtype, requires_grad=False, device=feature.device) + 0
+            # means2D_abs_per  = torch.zeros_like(position[index], dtype=position.dtype, requires_grad=True, device=feature.device) + 0
+            color_per = torch.ones(feature.shape[1], 3).to(device=feature.device)
+            position_per  = position[index]
+            semantic_feature_per = feature[index]
+            # semantic_feature_per = semantic_feature_per.unsqueeze(1)
+            opacity_per = opacity[index]
+            scale_per = scale[index]
+            rotation_per = rotation[index]
+            rendered_image, rendered_featmap, radii = rasterizer(
+                means3D = position_per,
+                means2D = means2D_per,
+                shs = None,
+                colors_precomp = color_per,
+                opacities = opacity_per,
+                scales = scale_per,
+                rotations = rotation_per,
+                sem = semantic_feature_per,
+                cov3D_precomp = None)
+            # print(out_all_map.shape)
+            gs_features[index:index+1] = rendered_featmap.unsqueeze(0)    
+            
+        # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
+        # They will be excluded from value updates used in the splitting criteria.
+        return gs_features.contiguous()
 
 class Rasterize_Gaussian_Feature_FiT3D_batch(nn.Module):
     def __init__(self, image_height, image_width, scaling_modifier=1.0):
@@ -819,6 +898,9 @@ def left_from_parameters(translation):
 
 def transformation_from_parameters(axisangle, translation, invert=False):
     """Convert the network's (axisangle, translation) output into a 4x4 matrix
+    axisangle: 相机旋转偏移（角）
+    translation: 相机位置便宜
+    return 视图矩阵
     """
     R = rot_from_axisangle(axisangle)
     t = translation.clone()
