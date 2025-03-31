@@ -13,7 +13,7 @@ python train_gs.py \
     --scheduler_step_size 15 \
     --learning_rate 1e-4 \
     --num_workers 12 \
-    --batch_size 6 \
+    --batch_size 12 \
     --height 192 \
     --width 640 \
     --eval_frequency_best 500 \
@@ -21,10 +21,10 @@ python train_gs.py \
     --loss_init_weight 1 \
     --png \
     --use_gs \
-    --pretrained_model_path /data/penghaoming/code/GS-Depth/models/baseline/monodepth2.pth \
-    --pretrained_models_to_load encoder init_decoder pose_encoder pose \
-    --use_init_smoothLoss \
+    # --pretrained_model_path /data/penghaoming/code/GS-Depth/models/baseline/hrnet_gs_singlegs_fused_epoch17.pth \
+    # --pretrained_models_to_load encoder init_decoder pose_encoder pose \
     # --pretrained_frozen \
+    # --use_init_smoothLoss \
     
  
 
