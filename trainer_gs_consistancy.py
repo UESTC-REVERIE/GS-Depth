@@ -594,6 +594,7 @@ class Trainer:
         total_loss = 0
         # 只计算1/4分辨率上的gs特征重投影损失
         for index in range(1):
+            # 使用1/4~1/32的高斯特征图计算损失
             loss = []
             for frame_id in self.opt.frame_ids[1:]:
                 pred = proj_gs_features[(frame_id, index)]

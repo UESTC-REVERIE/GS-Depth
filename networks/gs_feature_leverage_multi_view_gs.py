@@ -73,7 +73,7 @@ class GaussianFeatureLeverage(nn.Module):
             self.rasterizer[i].to("cuda")
             _num_ch_in = leveraged_feat_ch * self.gs_num_pixel + self.num_ch_in[i] + 1 + 3
             self.convs[("gs_feature_resume_conv", i)] = nn.Sequential(
-                SEBlock(_num_ch_in), # 添加SE注意力机制，选择融合特征中更重要的特征
+                # SEBlock(_num_ch_in), # 添加SE注意力机制，选择融合特征中更重要的特征
                 ConvBlock(_num_ch_in, self.num_ch_out[i])
             )
         self.gs_leverage = nn.ModuleList(list(self.convs.values()))
@@ -175,7 +175,7 @@ class GaussianFeatureLeverage(nn.Module):
         :param expand_ratio: 中间层通道扩展倍数
         """
         return nn.Sequential(
-            SEBlock(in_ch), # 添加SE避免cat的不同特征数值差异过大
+            # SEBlock(in_ch), # 添加SE避免cat的不同特征数值差异过大
             nn.Conv2d(in_ch, out_ch * expand_ratio, 3, 1, 1, padding_mode='replicate'),
             nn.GELU(),
             nn.Conv2d(out_ch * expand_ratio, out_ch, 3, 1, 1, padding_mode='replicate')

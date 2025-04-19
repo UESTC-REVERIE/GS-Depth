@@ -343,21 +343,28 @@ class Trainer:
         K = []
         if mode == "val":
             input_colors = list(inputs["color", 0, i] for i in range(6))
+            # lookup_input_colors = list(inputs["color", -1, i] for i in range(6))
         else:
             input_colors = list(inputs["color_aug", 0, i] for i in range(6))
+            # lookup_input_colors = list(inputs["color_aug", -1, i] for i in range(6))
             
         features = self.models["encoder"](input_colors[0])
+        # lookup_features = self.models["encoder"](lookup_input_colors[0])
         if mode == 'train' and self.use_pose_net:
-            outputs = self.predict_poses(inputs, features)
+            outputs = self.predict_poses(inputs, self.num_pose_frames)
             for frame_id in self.opt.frame_ids[1:]:
                 T[frame_id] = outputs[("cam_T_cam", 0, frame_id)] 
+                
+        # with torch.no_grad(): # following manydepth, 构建cost volume的相对位姿不计算梯度
+        #     lookup_T = self.predict_poses(inputs, 1)
+            
         if self.opt.use_gs: # 得到inv_k,k列表用于高斯
             for scale in range(6):
                 inv_K.append(inputs[("inv_K", scale)].to(self.device))
                 K.append(inputs[("K", scale)].to(self.device))
         
-        init_outputs, _, _ = self.models["init_decoder"](features)
-        for k,v in init_outputs.items():
+        init_outputs, _ , _ = self.models["init_decoder"](features)
+        for k, v in init_outputs.items():
             outputs[("init_disp", k[1])] = v
         
         if self.opt.use_gs:
@@ -366,10 +373,11 @@ class Trainer:
                 init_disps = list(outputs["init_disp", i] for i in self.opt.scales),
                 colors = input_colors,
                 inv_K = inv_K, K = K,
-                T=T if mode=="train" else None
+                T = T if mode=="train" else None,
+                # lookup_features = lookup_features,
+                # lookup_T = lookup_T
             )
-            """WORKING: 添加训练阶段得到不同视角GS特征的代码并保存图像以分析
-            """
+
             outputs.update(self.models["gs_decoder"](leveraged_features))
         else :
             for i in self.opt.scales:
@@ -388,11 +396,14 @@ class Trainer:
                 self.generate_images_pred(inputs, outputs, disp_list, 4)
                 losses["gs_loss"] = self.compute_losses(inputs, outputs, disp_list, 4, self.opt.use_init_smoothLoss) * self.opt.loss_gs_weight
                 
-                proj_gs_features = self.generate_features_pred(inputs, outputs, disp_list, gs_features)
-                losses["gs_ft_loss"] = self.compute_perceptional_loss(proj_gs_features, gs_features)
+                # # 相邻帧重新预测高斯分布光栅化得到的特征
+                nearby_gs_features = self.generate_features_pred(inputs, outputs, inv_K, K)
+                # 计算高斯一致性损失
+                losses["gs_ft_loss"] = self.compute_perceptional_loss(nearby_gs_features, gs_features) * self.opt.loss_perception_weight
                 
                 # losses["loss"] = losses["init_loss"] + losses["gs_loss"]
                 losses["loss"] = losses["gs_loss"] + losses["gs_ft_loss"]
+                # losses["loss"] = losses["gs_loss"]
             else:
                 disp_list = list(outputs[("disp", i)] for i in range(4))
                 self.generate_images_pred(inputs, outputs, disp_list, 4)
@@ -404,20 +415,14 @@ class Trainer:
         else:
             return outputs
 
-    def predict_poses(self, inputs, features):
+    def predict_poses(self, inputs, num_pose_frames):
         """Predict poses between input frames for monocular sequences.
         """
         outputs = {}
-        if self.num_pose_frames == 2:
+        if num_pose_frames == 2:
             # In this setting, we compute the pose to each source frame via a
             # separate forward pass through the pose network.
-
-            # select what features the pose network takes as input
-            if self.opt.pose_model_type == "shared":
-                pose_feats = {f_i: features[f_i] for f_i in self.opt.frame_ids}
-            else:
-                pose_feats = {f_i: inputs["color", f_i, 0] for f_i in self.opt.frame_ids}
-
+            pose_feats = {f_i: inputs["color", f_i, 0] for f_i in self.opt.frame_ids}
             for f_i in self.opt.frame_ids[1:]:
                 if f_i != "s":
                     # To maintain ordering we always pass frames in temporal order
@@ -426,11 +431,7 @@ class Trainer:
                     else:
                         pose_inputs = [pose_feats[0], pose_feats[f_i]]
 
-                    if self.opt.pose_model_type == "separate_resnet":
-                        pose_inputs = [self.models["pose_encoder"](torch.cat(pose_inputs, 1))]
-                    elif self.opt.pose_model_type == "posecnn":
-                        pose_inputs = torch.cat(pose_inputs, 1)
-
+                    pose_inputs = [self.models["pose_encoder"](torch.cat(pose_inputs, 1))]
                     axisangle, translation = self.models["pose"](pose_inputs)
                     outputs[("axisangle", 0, f_i)] = axisangle
                     outputs[("translation", 0, f_i)] = translation
@@ -438,28 +439,12 @@ class Trainer:
                     # Invert the matrix if the frame id is negative
                     outputs[("cam_T_cam", 0, f_i)] = transformation_from_parameters(
                         axisangle[:, 0], translation[:, 0], invert=(f_i < 0))
-                    
-
-        else:
-            # Here we input all frames to the pose net (and predict all poses) together
-            if self.opt.pose_model_type in ["separate_resnet", "posecnn"]:
-                pose_inputs = torch.cat(
-                    [inputs[("color_pose_aug", i, 0)] for i in self.opt.frame_ids if i != "s"], 1)
-
-                if self.opt.pose_model_type == "separate_resnet":
-                    pose_inputs = [self.models["pose_encoder"](pose_inputs)]
-
-            elif self.opt.pose_model_type == "shared":
-                pose_inputs = [features[i] for i in self.opt.frame_ids if i != "s"]
-
+        elif num_pose_frames == 1:
+            pose_inputs = [inputs["color", -1, 0], inputs["color", 0, 0]]
+            pose_inputs = [self.models["pose_encoder"](torch.cat(pose_inputs, 1))]
             axisangle, translation = self.models["pose"](pose_inputs)
-
-            for i, f_i in enumerate(self.opt.frame_ids[1:]):
-                if f_i != "s":
-                    outputs[("axisangle", 0, f_i)] = axisangle
-                    outputs[("translation", 0, f_i)] = translation
-                    outputs[("cam_T_cam", 0, f_i)] = transformation_from_parameters(
-                        axisangle[:, i], translation[:, i])
+            return transformation_from_parameters(
+                axisangle[:, 0], translation[:, 0], invert=True)
 
         return outputs
 
@@ -553,42 +538,32 @@ class Trainer:
                     padding_mode="border",
                     align_corners = True)
                 
-    def generate_features_pred(self, inputs, outputs, disps, gs_features):
-        """Generate the warped (reprojected) gs features for a minibatch.
-        Generated gs features are saved into the `outputs` dictionary.
+    def generate_features_pred(self, inputs, outputs, inv_K, K):
+        """
+        相邻帧重新预测高斯分布光栅化得到的特征
         ONLY 1/4 scale
         """
-        # for scale in range(num_scales):
-        scale = 2
-        disp = disps[scale]
-        source_scale = 0 # gs特征预测的最大尺度为1/4
-        proj_gs_features = {}
-        _, depth = disp_to_depth(disp, self.opt.min_depth, self.opt.max_depth)
-
+        nearby_gs_features = {}
         for i, frame_id in enumerate(self.opt.frame_ids[1:]):
-
-            if frame_id == "s":
-                T = inputs["stereo_T"]
-            else:
-                T = outputs[("cam_T_cam", 0, frame_id)]
-
-            cam_points = self.backproject_depth[scale](
-                depth, inputs[("inv_K", scale)])
-            pix_coords = self.project_3d[scale](
-                cam_points, inputs[("K", scale)], T)
-            proj_gs_features[(frame_id, source_scale)] = F.grid_sample(
-                gs_features[(frame_id, source_scale)],
-                pix_coords,
-                padding_mode="border",
-                align_corners = True)
-        return proj_gs_features
+            # TODO 讨论统一使用增强的color数据是否合理？（考虑到FeatDepth中使用未数据增强数据）
+            input_colors = list(inputs["color_aug", frame_id, i] for i in range(6))
+            features = self.models["encoder"](input_colors[0])
+            _ , gs_features = self.models["gs_leverage"](
+                init_features = features,
+                init_disps = list(outputs["init_disp", i] for i in self.opt.scales),
+                colors = input_colors,
+                inv_K = inv_K, K = K,
+                T = None
+            )
+            nearby_gs_features[(frame_id, 0)] = gs_features[(0, 0)]
+        return nearby_gs_features
     def robust_l1(self, pred, target):
         """L1 Loss
         """
         eps = 1e-3
         return torch.sqrt(torch.pow(target - pred, 2) + eps ** 2)
     
-    def compute_perceptional_loss(self,proj_gs_features, gs_features):
+    def compute_perceptional_loss(self, s_features, t_features):
         """Compute GS-Features perceptional loss
         """
         total_loss = 0
@@ -596,8 +571,8 @@ class Trainer:
         for index in range(1):
             loss = []
             for frame_id in self.opt.frame_ids[1:]:
-                pred = proj_gs_features[(frame_id, index)]
-                target = gs_features[(0, index)]
+                pred = s_features[(frame_id, index)]
+                target = t_features[(0, index)]
                 loss.append(self.robust_l1(pred, target).mean(1, True))
                 if self.step % 500 == 0:
                     save_dir = os.path.join(os.path.dirname(__file__), f"models/{self.opt.model_name}/results/gs_features/")
@@ -609,10 +584,9 @@ class Trainer:
                     self.save_feat_img(pred[0], pred_path)
             # TODO 考虑是否加入auto-masking?
             loss = torch.cat(loss, 1)
-            min_loss, idxs = torch.min(loss, 1) # 最小重投影损失
+            min_loss, idxs = torch.min(loss, 1) # 考虑遮挡问题，这里使用最小损失
             total_loss += min_loss.mean() # 转换为标量
-        # return total_loss * self.opt.loss_perception_weight / 4
-        return total_loss * self.opt.loss_perception_weight
+        return total_loss
     
     def save_feat_img(self, feature, path):
         # 计算通道均值
@@ -833,11 +807,14 @@ class Trainer:
         training_time_left = (
             self.num_total_steps / self.step - 1.0) * time_sofar if self.step > 0 else 0
     
+        # print_string = "epo {:>3} | bat {:>6} | ex/s: {:5.1f}" + \
+        #     " | loss: {:.5f} gs_ft {:.5f} | te: {} | tl: {} | lr: {}"
+        # print(print_string.format(self.epoch, batch_idx, samples_per_sec, losses["loss"].cpu().data,losses["gs_ft_loss"],
+        #     sec_to_hm_str(time_sofar), sec_to_hm_str(training_time_left), self.model_optimizer.state_dict()['param_groups'][0]['lr']))
         print_string = "epo {:>3} | bat {:>6} | ex/s: {:5.1f}" + \
-            " | loss: all {:.5f} gs_ft {:.5f} | te: {} | tl: {} | lr: {}"
-        print(print_string.format(self.epoch, batch_idx, samples_per_sec, losses["loss"].cpu().data,losses["gs_ft_loss"],
+            " | loss: {:.5f} | te: {} | tl: {} | lr: {}"
+        print(print_string.format(self.epoch, batch_idx, samples_per_sec, losses["loss"].cpu().data,
             sec_to_hm_str(time_sofar), sec_to_hm_str(training_time_left), self.model_optimizer.state_dict()['param_groups'][0]['lr']))
-
     def save_img(self, depth, disps, target, scale, train_save_path):
         model_name = self.opt.model_name
         for disp_type, disp in disps.items():
