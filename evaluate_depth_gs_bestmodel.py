@@ -203,7 +203,7 @@ def evaluate(opt):
                 for k,v in init_outputs.items():
                     outputs[("init_disp", k[1])] = v
                 if opt.use_gs:
-                    leveraged_features = gs_leverage(
+                    leveraged_features, _ = gs_leverage(
                         init_features = encoder_features,
                         init_disps = list(outputs["init_disp", i] for i in opt.scales),
                         colors = list(data["color", 0, i].to(device) for i in range(6)),

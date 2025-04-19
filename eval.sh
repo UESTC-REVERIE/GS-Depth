@@ -1,13 +1,13 @@
 CUDA_VISIBLE_DEVICES=5 \
 python evaluate_depth_gs_bestmodel.py \
     --data_path ~/dataset/KITTI_dataset/raw_data \
-    --load_weights_path /data/penghaoming/code/GS-Depth/models/v5_gs_hrinit_mse_scale2_pre/models/model_19_1477_best_d1_0.91918.pth \
+    --load_weights_path /data/penghaoming/code/GS-Depth/models/v8_gs_consistancy_w1_pn1/models/model_10_830_best_abs_rel_0.09338.pth \
     --eval_split eigen \
     --eval_mono \
     --use_gs \
     --gs_scale 2 \
-    --gs_num_per_pixel 2 \
-    # --eval_output_dir /data/penghaoming/code/GS-Depth/models/v5_gs_hrinit_mse_scale2_pre/eval \
+    --gs_num_per_pixel 1 \
+    # --eval_output_dir /data/penghaoming/code/GS-Depth/models/v7_gs_feat_reproj_loss_weight_1_pn1_pre/eval \
     # --save_pred_disps
 
 

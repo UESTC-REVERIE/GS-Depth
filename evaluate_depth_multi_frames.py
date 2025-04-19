@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from layers import disp_to_depth
+from layers import disp_to_depth, transformation_from_parameters
 from utils import readlines
 from options import MonodepthOptions
 import datasets
@@ -93,27 +93,32 @@ def evaluate(opt):
         if opt.eval_split == 'cityscapes':
             dataset = datasets.CityscapesEvalDataset(opt.data_path, filenames,
                                                      encoder_dict['height'], encoder_dict['width'],
-                                                     [0], 4,
+                                                     [0, -1], 4,
                                                      is_train=False)
         else:
             dataset = datasets.KITTIRAWDataset(opt.data_path, filenames,
                                             opt.height, opt.width,
-                                            [0], 4, is_train=False, img_ext='.png')
+                                            [0, -1], 4, is_train=False, img_ext='.png')
 
         dataloader = DataLoader(dataset, 16, shuffle=False, num_workers=opt.num_workers,
                                 pin_memory=True, drop_last=False)
 
         # encoder = networks.ResnetEncoder(opt.num_layers, False)
         encoder = networks.hrnet18(False)
-
         init_decoder = networks.InitDepthDecoder(
             num_ch_enc=encoder.num_ch_enc,
             scales=opt.scales
         )
-        # init_decoder = networks.HRDepthDecoder(
-        #     num_ch_enc=encoder.num_ch_enc,
-        #     scales=opt.scales
-        # )
+        pose_encoder = networks.ResnetEncoder(
+            opt.num_layers,
+            opt.weights_init == "pretrained",
+            num_input_images=2)
+
+        pose_decoder = networks.PoseDecoder(
+            pose_encoder.num_ch_enc,
+            num_input_features=1,
+            num_frames_to_predict_for=2)
+
         if opt.use_gs:
             gs_leverage = networks.GaussianFeatureLeverage(
                 num_ch_in=encoder.num_ch_enc, 
@@ -137,6 +142,13 @@ def evaluate(opt):
         model_dict = init_decoder.state_dict()
         init_decoder.load_state_dict({k: v for k, v in init_decoder_dict.items() if k in model_dict})
         
+        pose_encoder_dict = checkpoint["pose_encoder"]
+        model_dict = pose_encoder.state_dict()
+        pose_encoder.load_state_dict({k: v for k, v in pose_encoder_dict.items() if k in model_dict})
+        
+        pose_decoder_dict = checkpoint["pose"]
+        model_dict = pose_decoder.state_dict()
+        pose_decoder.load_state_dict({k: v for k, v in pose_decoder_dict.items() if k in model_dict})
         if opt.use_gs:
             gs_leverage_dict = checkpoint["gs_leverage"]
             model_dict = gs_leverage.state_dict()
@@ -150,6 +162,10 @@ def evaluate(opt):
         encoder.eval()
         init_decoder.to(device)
         init_decoder.eval()
+        pose_encoder.to(device)
+        pose_encoder.eval()
+        pose_decoder.to(device)
+        pose_decoder.eval()
         if opt.use_gs:
             gs_leverage.to(device)
             gs_leverage.eval()
@@ -186,6 +202,7 @@ def evaluate(opt):
                 # timer += 1
                 # input_color = data[("color", 0, 0)].to(device)
                 input_color = data[("color", 0, 0)].to(device)
+                lookup_input_color = data[("color", -1, 0)].to(device)
                 inv_K = []
                 K = []
                 for scale in range(6):
@@ -197,17 +214,26 @@ def evaluate(opt):
                     input_color = torch.cat((input_color, torch.flip(input_color, [3])), 0)
 
                 encoder_features = encoder(input_color)
-                # outputs , _ , _ = init_decoder(encoder_features)
+                lookup_features = encoder(lookup_input_color)
+                
+                pose_inputs = [lookup_input_color, input_color]
+                pose_inputs = [pose_encoder(torch.cat(pose_inputs, 1))]
+                axisangle, translation = pose_decoder(pose_inputs)
+                lookup_T = transformation_from_parameters(
+                    axisangle[:, 0], translation[:, 0], invert=True)
+
                 outputs = {}
                 init_outputs, _, _ = init_decoder(encoder_features)
-                for k,v in init_outputs.items():
+                for k, v in init_outputs.items():
                     outputs[("init_disp", k[1])] = v
                 if opt.use_gs:
                     leveraged_features, _ = gs_leverage(
                         init_features = encoder_features,
                         init_disps = list(outputs["init_disp", i] for i in opt.scales),
                         colors = list(data["color", 0, i].to(device) for i in range(6)),
-                        inv_K = inv_K, K = K
+                        inv_K = inv_K, K = K,
+                        lookup_features = lookup_features,
+                        lookup_T = lookup_T
                     )
                     outputs.update(gs_decoder(leveraged_features))
                 else :
