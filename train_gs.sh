@@ -4,8 +4,8 @@
 
 CUDA_VISIBLE_DEVICES=3 \
 python train_gs.py \
-    --data_path /data/penghaoming/dataset/KITTI_dataset/raw_data \
-    --log_dir /data/penghaoming/code/GS-Depth/models \
+    --data_path ~/dataset/KITTI_dataset/raw_data \
+    --log_dir ~/code/GS-Depth/models \
     --model_name resnet_encoder_gs_pretrained_combined_loss_unfrozen \
     --split eigen_zhou \
     --dataset kitti \
@@ -21,7 +21,7 @@ python train_gs.py \
     --loss_init_weight 1 \
     --png \
     --use_gs \
-    # --pretrained_model_path /data/penghaoming/code/GS-Depth/models/baseline/hrnet_gs_singlegs_fused_epoch17.pth \
+    # --pretrained_model_path ~/code/GS-Depth/models/baseline/hrnet_gs_singlegs_fused_epoch17.pth \
     # --pretrained_models_to_load encoder init_decoder pose_encoder pose \
     # --pretrained_frozen \
     # --use_init_smoothLoss \
@@ -33,8 +33,8 @@ python train_gs.py \
 
 # CUDA_VISIBLE_DEVICES=0 \
 # python train.py \
-#     --data_path /data/penghaoming/dataset/KITTI_dataset/raw_data \
-#     --log_dir /data/penghaoming/code/GS-Depth/models \
+#     --data_path ~/dataset/KITTI_dataset/raw_data \
+#     --log_dir ~/code/GS-Depth/models \
 #     --model_name GS-Depth_baseline_scale32_initdepth0.25_v2 \
 #     --split eigen_zhou \
 #     --dataset kitti \
@@ -56,8 +56,8 @@ python train_gs.py \
 
 # CUDA_VISIBLE_DEVICES=1 \
 # python train.py \
-#     --data_path /data/penghaoming/dataset/KITTI_dataset/raw_data \
-#     --log_dir /data/penghaoming/code/GS-Depth/models \
+#     --data_path ~/dataset/KITTI_dataset/raw_data \
+#     --log_dir ~/code/GS-Depth/models \
 #     --model_name GS-Depth_baseline_scale16_initdepth0.25_v2 \
 #     --split eigen_zhou \
 #     --dataset kitti \
@@ -79,8 +79,8 @@ python train_gs.py \
 
 # CUDA_VISIBLE_DEVICES=2 \
 # python train.py \
-#     --data_path /data/penghaoming/dataset/KITTI_dataset/raw_data \
-#     --log_dir /data/penghaoming/code/GS-Depth/models \
+#     --data_path ~/dataset/KITTI_dataset/raw_data \
+#     --log_dir ~/code/GS-Depth/models \
 #     --model_name GS-Depth_baseline_scale8_initdepth0.25_v2 \
 #     --split eigen_zhou \
 #     --dataset kitti \
@@ -101,8 +101,8 @@ python train_gs.py \
 
 # CUDA_VISIBLE_DEVICES=3 \
 # python train.py \
-#     --data_path /data/penghaoming/dataset/KITTI_dataset/raw_data \
-#     --log_dir /data/penghaoming/code/GS-Depth/models \
+#     --data_path ~/dataset/KITTI_dataset/raw_data \
+#     --log_dir ~/code/GS-Depth/models \
 #     --model_name GS-Depth_baseline_scale4_initdepth0.25_v2 \
 #     --split eigen_zhou \
 #     --dataset kitti \
@@ -124,8 +124,8 @@ python train_gs.py \
 
 # CUDA_VISIBLE_DEVICES=4 \
 # python train.py \
-#     --data_path /data/penghaoming/dataset/KITTI_dataset/raw_data \
-#     --log_dir /data/penghaoming/code/GS-Depth/models \
+#     --data_path ~/dataset/KITTI_dataset/raw_data \
+#     --log_dir ~/code/GS-Depth/models \
 #     --model_name GS-Depth_baseline_scale2_initdepth0.25_v2 \
 #     --split eigen_zhou \
 #     --dataset kitti \

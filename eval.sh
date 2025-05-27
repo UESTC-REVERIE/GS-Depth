@@ -1,10 +1,10 @@
 CUDA_VISIBLE_DEVICES=5 \
 python evaluate_depth_gs_bestmodel.py \
     --data_path ~/dataset/KITTI_dataset/raw_data \
-    --load_weights_path /data/penghaoming/code/GS-Depth/models/baseline/monodepth2.pth \
+    --load_weights_path ~/code/GS-Depth/models/baseline/monodepth2.pth \
     --eval_split eigen \
     --eval_mono \
-    # --eval_output_dir /data/penghaoming/code/GS-Depth/models/v7_gs_feat_reproj_loss_weight_1_pn1_pre/eval \
+    # --eval_output_dir ~/code/GS-Depth/models/v7_gs_feat_reproj_loss_weight_1_pn1_pre/eval \
     # --save_pred_disps
 
 

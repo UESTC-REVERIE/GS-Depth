@@ -4,8 +4,8 @@
 
 CUDA_VISIBLE_DEVICES=0 \
 python train_gs_hrnet.py \
-    --data_path /data/penghaoming/dataset/KITTI_dataset/raw_data \
-    --log_dir /data/penghaoming/code/GS-Depth/models \
+    --data_path ~/dataset/KITTI_dataset/raw_data \
+    --log_dir ~/code/GS-Depth/models \
     --model_name v7_gs_feat_reproj_loss_weight_1_pn1_pre_no_se \
     --split eigen_zhou \
     --dataset kitti \
@@ -25,6 +25,6 @@ python train_gs_hrnet.py \
     --png \
     --use_gs \
     --use_init_smoothLoss \
-    --pretrained_model_path /data/penghaoming/code/GS-Depth/models/v3_2se_offset_scale2_pre/models/model_9_147_best_abs_rel_0.09232.pth \
+    --pretrained_model_path ~/code/GS-Depth/models/v3_2se_offset_scale2_pre/models/model_9_147_best_abs_rel_0.09232.pth \
     --pretrained_models_to_load encoder init_decoder pose_encoder pose \
     --pretrained_frozen \

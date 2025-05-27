@@ -4,8 +4,8 @@
 
 CUDA_VISIBLE_DEVICES=5 \
 python train_gs_baseline.py \
-    --data_path /data/penghaoming/dataset/KITTI_dataset/raw_data \
-    --log_dir /data/penghaoming/code/GS-Depth/models \
+    --data_path ~/dataset/KITTI_dataset/raw_data \
+    --log_dir ~/code/GS-Depth/models \
     --model_name gs_baseline \
     --split eigen_zhou \
     --dataset kitti \
