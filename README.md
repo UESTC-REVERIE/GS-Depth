@@ -45,13 +45,13 @@ CUDA_VISIBLE_DEVICES=2 python train.py --model_name ./your_model_name
 我们使用一张 NVIDIA Titan RTX 显卡进行训练，预计的消耗如下：
 | Training modality | Approximate GPU memory  | Approximate training time   |
 |-------------------|-------------------------|-----------------------------|
-| Mono              | -                     | - hours                    |
+| Mono              | 9 GB                     | 10 hours                    |
 
 ### 💽 pretrained model
 | model | params | link|
 |-------|------|------|
 |[HRNet-W18-C](https://github.com/HRNet/HRNet-Image-Classification.git) | 21.3M | [LINK](https://github.com/HRNet/HRNet-Image-Classification/releases/download/PretrainedWeights/HRNet_W18_C_cosinelr_cutmix_300epoch.pth.tar)|
-
+|Ours (GS-Depth)|107.5M|[LINK](https://drive.google.com/file/d/1UN04yQIs5d_MeQ7ImK2a_Lv7UTjEBwXR/view?usp=sharing)
 ## 📊 KITTI evaluation
 | `--eval_split`        | Test set size | For models trained with... | Description  |
 |-----------------------|---------------|----------------------------|--------------|
@@ -68,7 +68,13 @@ python evaluate_depth_gs_bestmodel.py \
 ```
 可以使用 `--eval_output_dir ./your_eval_output_dir` 和 `--save_pred_disps` 选项来保存评估中预测的深度图进行分析。
 
-### 🎉 eval results
-|abs_rel |sq_rel |rmse | rmse_log |a1 |a2 |a3 | Input size  | `.pth` filesize | Eigen disparities|
-|-------|---------|-------|-------|----|----|----|----|-----|------|
-|   0.101  |   0.707  |   4.448  |   0.179  |   0.894  |   0.965 |   0.983 | 640 x 192   | - MB          |     [Download 🔗](-)    |
+### 🎉 KITTI results
+![alt text](results/kitti_results.png)
+
+MonoDepth2（第二行）与 GS-Depth（第三行）的结果对比：
+![alt text](results/results_compare.png)
+### 🎉 KITTI ablation
+![alt text](results/kitti_ablation.png)
+
+GS-Depth 去除高斯模块（第二行）和 GS-Depth 完整模型（第三行）的结果对比：
+![alt text](results/ablation_compare.png)
