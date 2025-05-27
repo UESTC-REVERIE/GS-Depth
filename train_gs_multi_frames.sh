@@ -6,7 +6,7 @@ CUDA_VISIBLE_DEVICES=1 \
 python train_gs_multi_frames.py \
     --data_path /data/penghaoming/dataset/KITTI_dataset/raw_data \
     --log_dir /data/penghaoming/code/GS-Depth/models \
-    --model_name v9_pn1_fused_skip_se_separate\
+    --model_name v9_pn1_fused_skip_se_adaptive\
     --split eigen_zhou \
     --dataset kitti \
     --num_epochs 20 \

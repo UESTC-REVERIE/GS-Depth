@@ -1,12 +1,12 @@
 CUDA_VISIBLE_DEVICES=0 \
 python evaluate_depth_multi_frames.py \
     --data_path ~/dataset/KITTI_dataset/raw_data \
-    --load_weights_path /data/penghaoming/code/GS-Depth/models/v9_multi_frames_pn2_fused_lookup_skip_cv/models/model_10_2830_best_abs_rel_0.09243.pth \
+    --load_weights_path /data/penghaoming/code/GS-Depth/models/v9_pn1_fused_skip_se_adaptive/models/model_18_2294_best_d1_0.91841.pth \
     --eval_split eigen \
     --eval_mono \
     --use_gs \
     --gs_scale 2 \
-    --gs_num_per_pixel 2 \
+    --gs_num_per_pixel 1 \
     # --eval_output_dir /data/penghaoming/code/GS-Depth/models/v9_multi_frames_pn1_fused_lookup_skip_cv/eval \
     # --save_pred_disps
 
