@@ -17,7 +17,10 @@ from .hrnet_encoder import hrnet64
 from .depth_decoder_resnet import DepthDecoder_MSF_GS_FiTAlter
 # from .gs_feature_leverage_hrinit import GaussianFeatureLeverage
 # from .gs_feature_leverage_multi_gs import GaussianFeatureLeverage
-from .gs_feature_leverage_multi_view_gs import GaussianFeatureLeverage
+from .gs_feature_leverage_multi_frames import GaussianFeatureLeverage
+# from .gs_feature_leverage_mf_adaptive import GaussianFeatureLeverage
+# from .gs_feature_leverage_mf_separate import GaussianFeatureLeverage
 from .init_depth_decode_resnet import InitDepthDecoder
+from .monodepth2_depth_decoder import DepthDecoder
 from .gs_depth_decoder_hrnet import GSDepthDecoder
 from .gs_depth_hrdecoder import HRDepthDecoder
